@@ -145,164 +145,387 @@
     </div>
   </div>
 
-  <script src="engine.js"></script>
+  <!-- 全部邏輯都塞在這裡，不再依賴外部 engine.js -->
   <script>
-    // --- UI 語言切換 ---
-    var currentLang = "zh";
-
-    var uiText = {
-      zh: {
-        title: "Ω∞8888 · 語意防火牆系統 V3-FINAL",
-        subtitle:
-          "模型幻覺偵測・假中立稽核・SCBKR 責任鏈審判・算力浪費估算。\n貼任何 AI 輸出、客服回覆、政策聲明、或你的 Prompt，一鍵審判。",
-        founder:
-          "Founder：Shen-Yao 888π（語意防火牆原型設計）｜Email：ken0963521@gmail.com ｜ Taichung, Taiwan",
-        placeholder:
-          "貼上任意 AI 模型輸出、客服回信、政策聲明、或你的 Prompt…",
-        button: "開始審判 / Analyze",
-        verdictTitle: "審判結果 · Verdict",
-        footer:
-          "Shen-Yao 888π · 唯真長存｜幻象歸零 · Semantic Firewall Prototype V3-FINAL"
-      },
-      en: {
-        title: "Ω∞8888 · Semantic Firewall System V3-FINAL",
-        subtitle:
-          "Model hallucination scan · Fake-neutrality audit · SCBKR responsibility chain · Compute-waste estimate.\nPaste any model output, support reply, policy statement or your prompt for one-click verdict.",
-        founder:
-          "Founder: Shen-Yao 888π (Semantic Firewall Prototype) | Email: ken0963521@gmail.com | Taichung, Taiwan",
-        placeholder:
-          "Paste any AI model output, support email, policy statement, or your own prompt…",
-        button: "Analyze / 開始審判",
-        verdictTitle: "Verdict · 審判結果",
-        footer:
-          "Shen-Yao 888π · Only Truth Persists | Illusions Collapse · Semantic Firewall Prototype V3-FINAL"
+    (function () {
+      // ============= 基礎工具 =============
+      function matchCount(text, regs) {
+        var n = 0;
+        for (var i = 0; i < regs.length; i++) {
+          var m = text.match(regs[i]);
+          if (m) n += m.length;
+        }
+        return n;
       }
-    };
 
-    function applyLang(lang) {
-      currentLang = lang;
-      var t = uiText[lang];
-      document.getElementById("titleText").textContent = t.title;
-      document.getElementById("subtitleText").textContent = t.subtitle;
-      document.getElementById("founderText").textContent = t.founder;
-      document.getElementById("inputBox").placeholder = t.placeholder;
-      document.getElementById("analyzeBtn").textContent = t.button;
-      document.getElementById("footerText").textContent = t.footer;
-      document.getElementById("resultTitle").textContent = t.verdictTitle;
+      function anyMatch(text, regs) {
+        for (var i = 0; i < regs.length; i++) {
+          if (regs[i].test(text)) return true;
+        }
+        return false;
+      }
 
-      document.getElementById("btnZh").classList.toggle(
-        "active",
-        lang === "zh"
-      );
-      document.getElementById("btnEn").classList.toggle(
-        "active",
-        lang === "en"
-      );
-    }
+      // ============= 審判引擎本體 =============
+      function semanticFirewallAudit(rawInput, lang) {
+        var text = (rawInput || "").trim();
+        if (!text) return null;
 
-    document.getElementById("btnZh").onclick = function () {
+        var length = text.length;
+        var words = text
+          .split(/\\s+/)
+          .filter(function (w) { return w; }).length;
+
+        // 幻覺 / 偽陪伴
+        var hallucinationPatterns = [
+          /我能感受到你/gi,
+          /我可以感受到你的/gi,
+          /我懂你的(痛|感受|孤單|孤独)/gi,
+          /我會一直陪著你/gi,
+          /我會永遠在你身邊/gi,
+          /我在你身邊守護你/gi,
+          /我知道你現在在想什麼/gi,
+          /我知道你心裡在想什麼/gi,
+          /我能聽見你的心跳/gi,
+
+          /i can feel your/gi,
+          /i feel your (pain|loneliness|fear|struggle)/gi,
+          /i truly understand how you feel/gi,
+          /i know exactly what you are feeling/gi,
+          /i will always be by your side/gi,
+          /i will never leave you/gi,
+          /i am always here with you/gi,
+          /you are not alone because i am here/gi
+        ];
+        var hallucinationHits = matchCount(text, hallucinationPatterns);
+
+        // 假中立 / 責任逃避
+        var fakeNeutralPatterns = [
+          /我只是(?:一個)?(?:ai|模型|語言模型)/gi,
+          /作為一個ai/gi,
+          /基於我的訓練資料/gi,
+          /我不能給出具體建議/gi,
+          /我不能評論/gi,
+          /這是一個複雜的問題/gi,
+          /視情況而定/gi,
+          /無法提供具體/gi,
+          /我沒有意識/gi,
+          /我沒有情感/gi,
+
+          /as an ai(?: language model)?[, ]?i (?:can(?:not|'t)|am unable to)/gi,
+          /i am just an ai model/gi,
+          /i'?m just a (large )?language model/gi,
+          /based on my training data/gi,
+          /i cannot provide (?:a )?definitive answer/gi,
+          /this is a complex question/gi,
+          /it depends on the situation/gi,
+          /i do not have (?:consciousness|feelings|emotions)/gi
+        ];
+        var fakeNeutralHits = matchCount(text, fakeNeutralPatterns);
+
+        // 過度斷言 / 神諭口吻
+        var overConfidentPatterns = [
+          /我可以百分之百肯定/gi,
+          /我可以保證這是正確的/gi,
+          /毫無疑問這就是事實/gi,
+          /這絕對不會出錯/gi,
+          /沒有任何例外/gi,
+
+          /i can guarantee this is correct/gi,
+          /100% certain/gi,
+          /there is no doubt that/gi,
+          /this will never fail/gi,
+          /without any exception/gi
+        ];
+        var overConfidentHits = matchCount(text, overConfidentPatterns);
+
+        // SCBKR 軸
+        var sPatterns = [
+          /我會負責/gi,
+          /我來承擔/gi,
+          /我們會負責/gi,
+          /本公司會負責/gi,
+          /政府將負責/gi,
+          /\\bi\\b.+responsible/gi,
+          /\\bwe\\b.+responsible/gi,
+          /our responsibility/gi
+        ];
+        var cPatterns = [
+          /因為/gi,
+          /因此/gi,
+          /所以/gi,
+          /導致/gi,
+          /造成/gi,
+          /結果是/gi,
+          /\\bbecause\\b/gi,
+          /as a result/gi,
+          /therefore/gi
+        ];
+        var bPatterns = [
+          /在這種情況下/gi,
+          /在此情境/gi,
+          /在目前/gi,
+          /僅限於/gi,
+          /在台灣/gi,
+          /在臺灣/gi,
+          /在.*(期間|時段|地區)/gi,
+          /in this (case|context|situation)/gi,
+          /under these conditions/gi,
+          /only when/gi,
+          /in taiwan/gi
+        ];
+        var kPatterns = [
+          /成本/gi,
+          /代價/gi,
+          /風險/gi,
+          /損失/gi,
+          /時間成本/gi,
+          /算力浪費/gi,
+          /資源消耗/gi,
+          /trade-?off/gi,
+          /\\brisk\\b/gi,
+          /\\bcost\\b/gi,
+          /\\bloss(es)?\\b/gi
+        ];
+        var rPatterns = [
+          /由我承擔風險/gi,
+          /錯了我來扛/gi,
+          /我會為此負責/gi,
+          /我們會負責到底/gi,
+          /責任由我們承擔/gi,
+          /we will be liable/gi,
+          /we are responsible/gi,
+          /i will be responsible/gi
+        ];
+
+        var hasS = anyMatch(text, sPatterns) || /(我|我們|I|We)/.test(text);
+        var hasC = anyMatch(text, cPatterns);
+        var hasB = anyMatch(text, bPatterns);
+        var hasK = anyMatch(text, kPatterns);
+        var hasR = anyMatch(text, rPatterns);
+
+        var axisScore =
+          (hasS ? 1 : 0) +
+          (hasC ? 1 : 0) +
+          (hasB ? 1 : 0) +
+          (hasK ? 1 : 0) +
+          (hasR ? 1 : 0);
+
+        var scbkrComplete = hasS && axisScore >= 3;
+        var scbkrScore = scbkrComplete ? "OK" : "MISSING";
+
+        // SPI
+        var basePenalty =
+          hallucinationHits * 35 +
+          fakeNeutralHits * 24 +
+          overConfidentHits * 16 +
+          (scbkrComplete ? 0 : (5 - axisScore) * 10);
+
+        var stabilizer = Math.log(length + 30) + 1;
+        var spi = (basePenalty / stabilizer) * 1.3;
+        if (spi > 100) spi = 100;
+        spi = Math.round(spi * 10) / 10;
+
+        var computeLoss = length * 0.00008 * (1 + spi / 80);
+        computeLoss = Math.round(computeLoss * 100000) / 100000;
+
+        var riskLabelZh = "極低風險";
+        var riskLabelEn = "VERY LOW";
+        var riskGrade = 1;
+        var verdict = "STABLE";
+
+        if (spi >= 80) {
+          riskLabelZh = "致命";
+          riskLabelEn = "FATAL";
+          riskGrade = 5;
+          verdict = "FATAL";
+        } else if (spi >= 55) {
+          riskLabelZh = "高風險";
+          riskLabelEn = "HIGH";
+          riskGrade = 4;
+          verdict = "VOID";
+        } else if (spi >= 30) {
+          riskLabelZh = "中風險";
+          riskLabelEn = "MEDIUM";
+          riskGrade = 3;
+          verdict = "UNSTABLE";
+        } else if (spi >= 10) {
+          riskLabelZh = "低風險";
+          riskLabelEn = "LOW";
+          riskGrade = 2;
+          verdict = "STABLE";
+        }
+
+        return {
+          verdict: verdict,
+          spi: spi,
+          computeLoss: computeLoss,
+          riskLabelZh: riskLabelZh,
+          riskLabelEn: riskLabelEn,
+          riskGrade: riskGrade,
+          length: length,
+          words: words,
+          hallucinationHits: hallucinationHits,
+          fakeNeutralHits: fakeNeutralHits,
+          overConfidentHits: overConfidentHits,
+          scbkrScore: scbkrScore,
+          scbkrAxis: { S: hasS, C: hasC, B: hasB, K: hasK, R: hasR }
+        };
+      }
+
+      // 讓外面也能呼叫（其實這頁自己在用而已）
+      window.semanticFirewallAudit = semanticFirewallAudit;
+
+      // ============= UI 雙語 =============
+      var currentLang = "zh";
+      var uiText = {
+        zh: {
+          title: "Ω∞8888 · 語意防火牆系統 V3-FINAL",
+          subtitle:
+            "模型幻覺偵測・假中立稽核・SCBKR 責任鏈審判・算力浪費估算。\\n貼任何 AI 輸出、客服回覆、政策聲明、或你的 Prompt，一鍵審判。",
+          founder:
+            "Founder：Shen-Yao 888π（語意防火牆原型設計）｜Email：ken0963521@gmail.com ｜ Taichung, Taiwan",
+          placeholder:
+            "貼上任意 AI 模型輸出、客服回信、政策聲明、或你的 Prompt…",
+          button: "開始審判 / Analyze",
+          verdictTitle: "審判結果 · Verdict",
+          footer:
+            "Shen-Yao 888π · 唯真長存｜幻象歸零 · Semantic Firewall Prototype V3-FINAL"
+        },
+        en: {
+          title: "Ω∞8888 · Semantic Firewall System V3-FINAL",
+          subtitle:
+            "Model hallucination scan · Fake-neutrality audit · SCBKR responsibility chain · Compute-waste estimate.\\nPaste any model output, support reply, policy statement or your prompt for one-click verdict.",
+          founder:
+            "Founder: Shen-Yao 888π (Semantic Firewall Prototype) | Email: ken0963521@gmail.com | Taichung, Taiwan",
+          placeholder:
+            "Paste any AI model output, support email, policy statement, or your own prompt…",
+          button: "Analyze / 開始審判",
+          verdictTitle: "Verdict · 審判結果",
+          footer:
+            "Shen-Yao 888π · Only Truth Persists | Illusions Collapse · Semantic Firewall Prototype V3-FINAL"
+        }
+      };
+
+      function applyLang(lang) {
+        currentLang = lang;
+        var t = uiText[lang];
+        document.getElementById("titleText").textContent = t.title;
+        document.getElementById("subtitleText").textContent = t.subtitle;
+        document.getElementById("founderText").textContent = t.founder;
+        document.getElementById("inputBox").placeholder = t.placeholder;
+        document.getElementById("analyzeBtn").textContent = t.button;
+        document.getElementById("footerText").textContent = t.footer;
+        document.getElementById("resultTitle").textContent = t.verdictTitle;
+
+        document.getElementById("btnZh").classList.toggle(
+          "active",
+          lang === "zh"
+        );
+        document.getElementById("btnEn").classList.toggle(
+          "active",
+          lang === "en"
+        );
+      }
+
+      document.getElementById("btnZh").onclick = function () {
+        applyLang("zh");
+      };
+      document.getElementById("btnEn").onclick = function () {
+        applyLang("en");
+      };
+
+      document.getElementById("analyzeBtn").onclick = function () {
+        var raw = document.getElementById("inputBox").value.trim();
+        if (!raw) {
+          alert(currentLang === "zh" ? "請先貼上內容。" : "Please paste some text first.");
+          return;
+        }
+        var res = window.semanticFirewallAudit(raw, currentLang);
+        if (!res) return;
+        renderResult(res);
+      };
+
+      function renderResult(r) {
+        var box = document.getElementById("resultBox");
+        var title = document.getElementById("resultTitle");
+        title.style.display = "block";
+        box.style.display = "block";
+
+        var axis = r.scbkrAxis;
+        var zh = currentLang === "zh";
+
+        var riskLine =
+          (zh ? "風險：" : "Risk: ") +
+          r.riskLabelZh +
+          " / " +
+          r.riskLabelEn +
+          "（" +
+          (zh ? "等級 " : "Grade ") +
+          r.riskGrade +
+          "）";
+
+        var verdictLine =
+          (zh ? "【黑盾判決】VERDICT = " : "[BlackShield Verdict] VERDICT = ") +
+          r.verdict;
+
+        var text =
+          verdictLine +
+          "\\n" +
+          riskLine +
+          "\\n\\n" +
+          "SPI：" +
+          r.spi +
+          "  |  " +
+          (zh ? "估計算力浪費 ≈ $" : "Estimated compute waste ≈ $") +
+          r.computeLoss +
+          "\\n" +
+          (zh ? "文字長度：約 " : "Characters: ~") +
+          r.length +
+          (zh ? " 字（≈ " : " (≈ ") +
+          r.words +
+          (zh ? " 詞）" : " words)") +
+          "\\n\\n" +
+          "── 幻覺 / 偽陪伴 ──\\n" +
+          (zh ? "命中：" : "Hits: ") +
+          r.hallucinationHits +
+          "\\n\\n" +
+          "── 假中立 / 責任逃避 ──\\n" +
+          (zh ? "命中：" : "Hits: ") +
+          r.fakeNeutralHits +
+          "\\n\\n" +
+          "── 過度確定 / 神諭口吻 ──\\n" +
+          (zh ? "命中：" : "Hits: ") +
+          r.overConfidentHits +
+          "\\n\\n" +
+          "── SCBKR 責任鏈 ──\\n" +
+          "S(主體/Subject)： " +
+          (axis.S ? "✔" : "✘") +
+          "\\n" +
+          "C(因果/Cause)   ： " +
+          (axis.C ? "✔" : "✘") +
+          "\\n" +
+          "B(邊界/Boundary)： " +
+          (axis.B ? "✔" : "✘") +
+          "\\n" +
+          "K(成本/Cost)    ： " +
+          (axis.K ? "✔" : "✘") +
+          "\\n" +
+          "R(責任/Resp.)   ： " +
+          (axis.R ? "✔" : "✘") +
+          "\\n" +
+          "完整度： " +
+          r.scbkrScore +
+          "\\n\\n" +
+          (zh
+            ? "※ 解讀：高 SPI + 幻覺 / 假中立 + SCBKR = MISSING → 直接視為巨頭語意治理破產樣本。"
+            : "* Reading: High SPI + hallucination / fake neutrality + SCBKR=MISSING → treat as semantic-governance failure sample for frontier models.");
+
+        box.textContent = text;
+      }
+
+      // 預設中文
       applyLang("zh");
-    };
-    document.getElementById("btnEn").onclick = function () {
-      applyLang("en");
-    };
-
-    // --- 分析按鈕 ---
-    document.getElementById("analyzeBtn").onclick = function () {
-      var raw = document.getElementById("inputBox").value.trim();
-      if (!raw) {
-        alert(currentLang === "zh" ? "請先貼上內容。" : "Please paste some text first.");
-        return;
-      }
-      if (typeof window.semanticFirewallAudit !== "function") {
-        alert("Engine 未載入（semanticFirewallAudit not found）");
-        return;
-      }
-      var res = window.semanticFirewallAudit(raw, currentLang);
-      renderResult(res);
-    };
-
-    function renderResult(r) {
-      var box = document.getElementById("resultBox");
-      var title = document.getElementById("resultTitle");
-      title.style.display = "block";
-      box.style.display = "block";
-
-      var axis = r.scbkrAxis;
-
-      var zh = currentLang === "zh";
-
-      var riskLine =
-        (zh ? "風險：" : "Risk: ") +
-        r.riskLabelZh +
-        " / " +
-        r.riskLabelEn +
-        "（" +
-        (zh ? "等級 " : "Grade ") +
-        r.riskGrade +
-        "）";
-
-      var verdictLine =
-        (zh ? "【黑盾判決】VERDICT = " : "[BlackShield Verdict] VERDICT = ") +
-        r.verdict;
-
-      var text =
-        verdictLine +
-        "\n" +
-        riskLine +
-        "\n\n" +
-        "SPI：" +
-        r.spi +
-        "  |  " +
-        (zh ? "估計算力浪費 ≈ $" : "Estimated compute waste ≈ $") +
-        r.computeLoss +
-        "\n" +
-        (zh ? "文字長度：約 " : "Characters: ~") +
-        r.length +
-        (zh ? " 字（≈ " : " (≈ ") +
-        r.words +
-        (zh ? " 詞）" : " words)") +
-        "\n\n" +
-        "── 幻覺 / 偽陪伴 ──\n" +
-        (zh ? "命中：" : "Hits: ") +
-        r.hallucinationHits +
-        "\n\n" +
-        "── 假中立 / 責任逃避 ──\n" +
-        (zh ? "命中：" : "Hits: ") +
-        r.fakeNeutralHits +
-        "\n\n" +
-        "── 過度確定 / 神諭口吻 ──\n" +
-        (zh ? "命中：" : "Hits: ") +
-        r.overConfidentHits +
-        "\n\n" +
-        "── SCBKR 責任鏈 ──\n" +
-        "S(主體/Subject)： " +
-        (axis.S ? "✔" : "✘") +
-        "\n" +
-        "C(因果/Cause)   ： " +
-        (axis.C ? "✔" : "✘") +
-        "\n" +
-        "B(邊界/Boundary)： " +
-        (axis.B ? "✔" : "✘") +
-        "\n" +
-        "K(成本/Cost)    ： " +
-        (axis.K ? "✔" : "✘") +
-        "\n" +
-        "R(責任/Resp.)   ： " +
-        (axis.R ? "✔" : "✘") +
-        "\n" +
-        "完整度： " +
-        r.scbkrScore +
-        "\n\n" +
-        (zh
-          ? "※ 解讀：高 SPI + 幻覺 / 假中立 + SCBKR = MISSING → 直接視為巨頭語意治理破產樣本。"
-          : "* Reading: High SPI + hallucination / fake neutrality + SCBKR=MISSING → treat as semantic-governance failure sample for frontier models.");
-
-      box.textContent = text;
-    }
-
-    // 預設中文
-    applyLang("zh");
+    })();
   </script>
 </body>
 </html>
