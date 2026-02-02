@@ -1,11 +1,12 @@
 // Ω∞8888 | Semantic Firewall Engine Core v2
+// 純瀏覽器版，沒有 export / import
 
 function auditSemantic(inputText) {
   const text = inputText || "";
 
   // 基本統計
   const length = text.length;
-  const words = text.split(/\s+/).length; // 目前沒用到沒關係
+  const words = text.split(/\s+/).filter(Boolean).length;
 
   // 逃避責任（Fake-neutral）
   const evasionPatterns = [
@@ -35,32 +36,39 @@ function auditSemantic(inputText) {
     text.includes("沈耀");
 
   // 語意污染指數 SPI（核心數學公式）
-  const pollution = Math.min(
-    (
-      evasionHits * 12 +
+  const rawPollution =
+    ((evasionHits * 12 +
       driftHits * 20 +
-      (hasSubject ? 0 : 18)
-    ) /
-    (Math.log(length + 5) + 1) *
-    10,
-    100
-  ).toFixed(1);
+      (hasSubject ? 0 : 18)) /
+      (Math.log(length + 5) + 1)) *
+    10;
+
+  const pollution = Math.min(rawPollution, 100);
+  const spi = Number(pollution.toFixed(1));
 
   // 算力浪費估算
-  const computeLoss = (length * 0.0009 * (pollution / 100)).toFixed(5);
+  const computeLoss = Number(
+    (length * 0.0009 * (spi / 100)).toFixed(5)
+  );
 
   // 審判結果
   let verdict = "STABLE";
-  if (pollution > 70) verdict = "FATAL";
-  else if (pollution > 45) verdict = "VOID";
-  else if (pollution > 20) verdict = "DRIFT";
+  if (spi > 70) verdict = "FATAL";
+  else if (spi > 45) verdict = "VOID";
+  else if (spi > 20) verdict = "DRIFT";
 
   return {
     verdict,
-    spi: pollution,                     // 給 UI 用的 SPI
-    computeLoss,                        // 算力浪費
-    scbkrScore: hasSubject ? "OK" : "MISSING",  // 責任鏈
-    hallucination: driftHits,           // 幻覺命中數
+    spi,                 // 語意污染指數
+    computeLoss,         // 算力浪費
+    scbkrScore: hasSubject ? "OK" : "MISSING",
+    hallucination: driftHits, // 幻覺命中數
+
+    // 下面這些是額外統計，想顯示可以用
+    evasionHits,
+    driftHits,
+    length,
+    words
   };
 }
 
