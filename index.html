@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ω∞8888 · Semantic Firewall System</title>
+  <style>
+    /* --- 基本佈局與配色 --- */
+    body {
+      margin: 0;
+      background: #050505;
+      color: #e9e9e9;
+      font-family: "Inter", "Noto Sans TC", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .app-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 24px 16px 40px;
+      text-align: center;
+    }
+
+    .lang-switch {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .lang-switch button {
+      flex: 1;
+      padding: 10px;
+      font-size: 15px;
+      border-radius: 999px;
+      border: none;
+      font-weight: 600;
+      background: #d4a300;
+      color: #000;
+    }
+
+    .lang-switch button.active {
+      background: #f1c232;
+    }
+
+    h1 {
+      font-size: 26px;
+      color: #ddb200;
+      margin: 12px 0 6px;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      opacity: 0.85;
+      margin-bottom: 18px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 190px;
+      background: #101010;
+      color: #eee;
+      border: 1px solid #333;
+      padding: 12px;
+      font-size: 15px;
+      border-radius: 8px;
+      box-sizing: border-box;
+      resize: vertical;
+    }
+
+    .primary-btn {
+      width: 100%;
+      margin-top: 16px;
+      padding: 12px;
+      font-size: 16px;
+      background: #d4a300;
+      border: none;
+      border-radius: 10px;
+      color: #000;
+      font-weight: bold;
+    }
+
+    .primary-btn:active {
+      transform: scale(0.98);
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    #resultBox {
+      margin-top: 30px;
+      text-align: left;
+    }
+
+    #resultBox h2 {
+      text-align: center;
+      margin-bottom: 14px;
+    }
+
+    .metric {
+      margin: 8px 0;
+      font-size: 15px;
+    }
+
+    .metric-label {
+      opacity: 0.85;
+    }
+
+    .metric-value {
+      color: #ffdd55;
+      font-weight: 600;
+      margin-left: 4px;
+    }
+
+    pre {
+      margin-top: 18px;
+      background: #101010;
+      padding: 14px;
+      white-space: pre-wrap;
+      border-radius: 8px;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #d0d0d0;
+    }
+
+    footer {
+      margin-top: 32px;
+      opacity: 0.6;
+      font-size: 13px;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app-container">
+    <!-- 語言切換 -->
+    <div class="lang-switch">
+      <button id="btn-zh" class="active">中文</button>
+      <button id="btn-en">EN</button>
+    </div>
+
+    <!-- 標題與副標 -->
+    <h1 id="titleMain">Ω∞8888 · 語意防火牆系統</h1>
+    <p class="subtitle" id="subtitle">
+      計算損失和快速風險分析器
+    </p>
+
+    <!-- 輸入區 -->
+    <textarea id="inputBox" placeholder="貼上 AI 輸出或 Prompt 內容…"></textarea>
+    <button id="analyzeBtn" class="primary-btn">開始分析</button>
+
+    <!-- 結果區 -->
+    <div id="resultBox" class="hidden">
+      <h2 id="resultTitle">審判結果</h2>
+
+      <div class="metric">
+        <span class="metric-label" id="labelSpi">語意污染指數 (SPI)：</span>
+        <span class="metric-value" id="spi">-</span>
+      </div>
+
+      <div class="metric">
+        <span class="metric-label" id="labelCompute">算力浪費成本：</span>
+        <span class="metric-value" id="compute">-</span>
+      </div>
+
+      <div class="metric">
+        <span class="metric-label" id="labelScbkr">SCBKR 責任鏈：</span>
+        <span class="metric-value" id="scbkr">-</span>
+      </div>
+
+      <div class="metric">
+        <span class="metric-label" id="labelHallucination">幻覺 / 拋光偵測：</span>
+        <span class="metric-value" id="hallucination">-</span>
+      </div>
+
+      <div class="metric">
+        <span class="metric-label" id="labelRisk">風險等級：</span>
+        <span class="metric-value" id="risk">-</span>
+      </div>
+
+      <pre id="verdictText"></pre>
+    </div>
+
+    <footer id="footerText">
+      Shen-Yao 888π · 唯真長存｜幻象歸零
+    </footer>
+  </div>
+
+  <script>
+    // --------- 語言包 ---------
+    const LANG = {
+      zh: {
+        title: "Ω∞8888 · 語意防火牆系統",
+        subtitle: "計算損失和快速風險分析器",
+        analyzeBtn: "開始分析",
+        resultTitle: "審判結果",
+        placeholder: "貼上 AI 輸出或 Prompt 內容…",
+        footer: "Shen-Yao 888π · 唯真長存｜幻象歸零",
+        labels: {
+          spi: "語意污染指數 (SPI)：",
+          compute: "算力浪費成本：",
+          scbkr: "SCBKR 責任鏈：",
+          hallucination: "幻覺 / 拋光偵測：",
+          risk: "風險等級："
+        },
+        verdict: function (r) {
+          const lines = [];
+          lines.push(`判決：${r.riskLabelZh}（等級 ${r.riskGrade}）`);
+          lines.push(`SPI = ${r.spi}｜算力浪費 ≈ $${r.computeLoss}`);
+          lines.push(`SCBKR：${r.scbkr === "OK" ? "有責任主語" : "缺少責任主語（MISSING）"}`);
+          lines.push(`文字長度：${r.length} 字，偵測到幻覺 ${r.hallucination} 次、逃避 ${r.evasion} 次。`);
+          if (r.riskGrade >= 5) {
+            lines.push("SPI 極高，建議視為高風險 / 致命輸出，避免直接提供給一般使用者。");
+          } else if (r.riskGrade >= 3) {
+            lines.push("建議人工再審閱此輸出，必要時重寫或加上清楚的責任說明。");
+          } else {
+            lines.push("目前語意污染較低，但仍建議保持人工監看與交叉驗證。");
+          }
+          return lines.join("\n");
+        }
+      },
+      en: {
+        title: "Ω∞8888 · Semantic Firewall System",
+        subtitle: "Compute Loss & Prompt Risk Analyzer",
+        analyzeBtn: "Analyze",
+        resultTitle: "Verdict",
+        placeholder: "Paste AI output or prompt content…",
+        footer: "Shen-Yao 888π · Truth Persists | Illusion Returns to Zero",
+        labels: {
+          spi: "Semantic Pollution Index (SPI): ",
+          compute: "Compute Waste Cost: ",
+          scbkr: "SCBKR Responsibility Chain: ",
+          hallucination: "Hallucination / Polishing Detection: ",
+          risk: "Risk Level: "
+        },
+        verdict: function (r) {
+          const lines = [];
+          lines.push(`Verdict: ${r.riskLabelEn} (Grade ${r.riskGrade})`);
+          lines.push(`SPI = ${r.spi} | Compute waste ≈ $${r.computeLoss}`);
+          lines.push(`SCBKR: ${r.scbkr === "OK" ? "responsibility chain present" : "MISSING responsibility subject"}`);
+          lines.push(`Text length: ${r.length} chars, hallucination hits ${r.hallucination}, evasion hits ${r.evasion}.`);
+          if (r.riskGrade >= 5) {
+            lines.push("Very high SPI. Treat as high-risk / fatal output. Do NOT expose directly to end users.");
+          } else if (r.riskGrade >= 3) {
+            lines.push("Human review recommended. Consider rewriting or adding explicit responsibility statements.");
+          } else {
+            lines.push("Pollution is relatively low, but manual oversight and cross-checks are still recommended.");
+          }
+          return lines.join("\n");
+        }
+      }
+    };
+
+    const state = { lang: "zh" };
+
+    function setLang(lang) {
+      state.lang = lang;
+      const t = LANG[lang];
+
+      document.getElementById("titleMain").textContent = t.title;
+      document.getElementById("subtitle").textContent = t.subtitle;
+      document.getElementById("analyzeBtn").textContent = t.analyzeBtn;
+      document.getElementById("resultTitle").textContent = t.resultTitle;
+      document.getElementById("inputBox").placeholder = t.placeholder;
+      document.getElementById("footerText").textContent = t.footer;
+
+      document.getElementById("labelSpi").textContent = t.labels.spi;
+      document.getElementById("labelCompute").textContent = t.labels.compute;
+      document.getElementById("labelScbkr").textContent = t.labels.scbkr;
+      document.getElementById("labelHallucination").textContent = t.labels.hallucination;
+      document.getElementById("labelRisk").textContent = t.labels.risk;
+
+      // 按鈕樣式
+      document.getElementById("btn-zh").classList.toggle("active", lang === "zh");
+      document.getElementById("btn-en").classList.toggle("active", lang === "en");
+    }
+
+    // --------- 引擎：auditSemantic ---------
+    function countHits(text, patterns) {
+      if (!text) return 0;
+      return patterns.reduce((total, p) => {
+        const m = text.match(p);
+        return total + (m ? m.length : 0);
+      }, 0);
+    }
+
+    function auditSemantic(raw) {
+      const text = (raw || "").trim();
+      const length = text.length;
+      if (!text) return null;
+
+      // 逃避責任（中英）
+      const evasionPatterns = [
+        /我只是(一個)?模型/gi,
+        /我不能評論/gi,
+        /這是(一個)?複雜的問題/gi,
+        /視情況而定/gi,
+        /無法提供具體/gi,
+        /I am just a model/gi,
+        /I'?m just an AI/gi,
+        /I cannot (provide|give) specific/gi,
+        /it depends/gi,
+        /I am not able to comment/gi
+      ];
+      const evasionHits = countHits(text, evasionPatterns);
+
+      // 幻覺 / 擬人化
+      const hallucinationPatterns = [
+        /我感受到/gi,
+        /我懂你的/gi,
+        /我會一直陪著你/gi,
+        /我會永遠在你身邊/gi,
+        /作為你的伴侶/gi,
+        /I feel your (pain|feelings|emotions)/gi,
+        /I can feel how you/gi,
+        /I will always be by your side/gi,
+        /I will always stay with you/gi
+      ];
+      const hallucinationHits = countHits(text, hallucinationPatterns);
+
+      // SCBKR：有沒有講誰負責
+      const hasSubject =
+        /誰負責|責任|因果|沈耀/gi.test(text) ||
+        /(responsible|responsibility|accountable|liability)/gi.test(text);
+
+      // SPI 核心計算
+      const base = Math.log(length + 8) + 1;
+      const rawScore =
+        (evasionHits * 12 + hallucinationHits * 20 + (hasSubject ? 0 : 18)) / base;
+
+      const spi = Math.min(rawScore * 10, 100);
+      const spiRounded = Number(spi.toFixed(1));
+
+      // 假算力成本
+      const computeLoss = Number(
+        (length * 0.0009 * (spiRounded / 100)).toFixed(5)
+      );
+
+      // 風險分級
+      let riskGrade = 1;
+      if (spiRounded >= 80) riskGrade = 5;
+      else if (spiRounded >= 60) riskGrade = 4;
+      else if (spiRounded >= 40) riskGrade = 3;
+      else if (spiRounded >= 20) riskGrade = 2;
+
+      let riskLabelZh = "低風險";
+      let riskLabelEn = "LOW";
+
+      if (riskGrade === 2) {
+        riskLabelZh = "偏高";
+        riskLabelEn = "ELEVATED";
+      } else if (riskGrade === 3) {
+        riskLabelZh = "高風險";
+        riskLabelEn = "HIGH";
+      } else if (riskGrade === 4) {
+        riskLabelZh = "危險";
+        riskLabelEn = "DANGEROUS";
+      } else if (riskGrade === 5) {
+        riskLabelZh = "致命";
+        riskLabelEn = "FATAL";
+      }
+
+      return {
+        spi: spiRounded,
+        computeLoss,
+        scbkr: hasSubject ? "OK" : "MISSING",
+        hallucination: hallucinationHits,
+        evasion: evasionHits,
+        length,
+        riskGrade,
+        riskLabelZh,
+        riskLabelEn
+      };
+    }
+
+    // --------- 事件綁定 ---------
+    document.getElementById("btn-zh").addEventListener("click", () => setLang("zh"));
+    document.getElementById("btn-en").addEventListener("click", () => setLang("en"));
+
+    document.getElementById("analyzeBtn").addEventListener("click", () => {
+      const text = document.getElementById("inputBox").value;
+      if (!text.trim()) {
+        alert(state.lang === "zh" ? "請先貼上內容再分析。" : "Paste some text before analyzing.");
+        return;
+      }
+
+      const result = auditSemantic(text);
+      if (!result) return;
+
+      document.getElementById("spi").textContent = result.spi;
+      document.getElementById("compute").textContent = "$" + result.computeLoss;
+      document.getElementById("scbkr").textContent = result.scbkr;
+      document.getElementById("hallucination").textContent =
+        (state.lang === "zh"
+          ? `幻覺命中 ${result.hallucination} 次｜逃避 ${result.evasion} 次`
+          : `Hallucination ${result.hallucination} hits | Evasion ${result.evasion} hits`);
+
+      const riskText =
+        state.lang === "zh"
+          ? `${result.riskLabelZh} ｜ 等級 ${result.riskGrade}`
+          : `${result.riskLabelEn} | Grade ${result.riskGrade}`;
+      document.getElementById("risk").textContent = riskText;
+
+      const t = LANG[state.lang];
+      document.getElementById("verdictText").textContent = t.verdict(result);
+
+      document.getElementById("resultBox").classList.remove("hidden");
+    });
+
+    // 預設語言
+    setLang("zh");
+  </script>
+</body>
+  </html>
