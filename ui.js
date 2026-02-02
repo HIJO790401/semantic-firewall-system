@@ -1,5 +1,5 @@
 // UI controller for Shen-Yao Semantic Firewall System
-import { auditSemantic } from "./src/engine.js";
+// 注意：不要用 import，engine.js 已經在 index.html 用 <script> 載入
 
 document.getElementById("analyzeBtn").addEventListener("click", () => {
   const text = document.getElementById("inputBox").value.trim();
@@ -9,15 +9,18 @@ document.getElementById("analyzeBtn").addEventListener("click", () => {
     return;
   }
 
+  // 這個函式來自 src/engine.js
   const result = auditSemantic(text);
 
-  document.getElementById("spi").textContent = result.pollution;
+  // 對應 engine.js 裡 return 的 key
+  document.getElementById("spi").textContent = result.spi;
   document.getElementById("compute").textContent = "$" + result.computeLoss;
-  document.getElementById("scbkr").textContent = result.scbkr;
+  document.getElementById("scbkr").textContent = result.scbkrScore;
   document.getElementById("hallucination").textContent =
-    `逃避 ${result.evasionHits} 次｜幻覺 ${result.driftHits} 次`;
+    `幻覺命中 ${result.hallucination} 次`;
 
-  document.getElementById("verdictText").textContent = result.verdict;
+  document.getElementById("verdictText").textContent =
+    `判決：${result.verdict}`;
 
   document.getElementById("resultBox").classList.remove("hidden");
 });
