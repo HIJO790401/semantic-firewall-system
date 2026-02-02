@@ -1,67 +1,93 @@
 // UI controller for Shen-Yao Semantic Firewall System
-// 引擎已用 <script> 載入，這裡直接呼叫 auditSemantic()
+// 引擎 src/engine-v2.js 已用 <script> 載入，提供全域函式 auditSemantic()
 
 let currentLang = "zh";
 
+// 文字對照表
 const i18n = {
   zh: {
     title: "Ω∞8888 · 語意防火牆系統",
     subtitle: "計算損失和快速風險分析器",
     placeholder: "貼上 AI 輸出或 Prompt 內容…",
-    analyze: "開始分析",
-    resultTitle: "審判結果",
+    analyzeBtn: "開始分析",
+    resultHeader: "審判結果",
     labelSpi: "語意污染指數 (SPI)：",
     labelCompute: "算力浪費成本：",
     labelScbkr: "SCBKR 責任鏈：",
     labelHallucination: "幻覺 / 拋光偵測：",
     labelRisk: "風險等級：",
     footer: "Shen-Yao 888π · 唯真長存｜幻象歸零",
-    alertEmpty: "請先貼上內容再分析。",
-    scbkrOK: "有責任主語",
-    scbkrMissing: "缺少責任主語",
-    riskLabels: {
-      MINIMAL: "極低",
-      LOW: "偏低",
-      MEDIUM: "中等",
-      HIGH: "偏高",
-      LETHAL: "致命"
-    }
+    scbkrOk: "有責任主語",
+    scbkrMissing: "MISSING（缺少責任主語）",
+    riskLevel: {
+      1: "低風險",
+      2: "偏高",
+      3: "高風險",
+      4: "危險",
+      5: "致命"
+    },
+    verdictPrefix: "判決：",
+    riskLine: (label, grade, spi, loss) =>
+      `風險等級：${label}（等級 ${grade}）｜SPI = ${spi}｜算力浪費 ≈ $${loss}`,
+    scbkrLineOk: "SCBKR：有責任主語，至少出現一個「誰負責／因果／責任／沈耀」。",
+    scbkrLineMissing:
+      "SCBKR：缺少責任主語，建議補上「誰負責／因果／責任」相關描述。",
+    summaryLine: (len, words, evasion, drift) =>
+      `本文長度約 ${len} 字，詞數約 ${words}，偵測到逃避 ${evasion} 次、幻覺／擬人化 ${drift} 次。`
   },
   en: {
     title: "Ω∞8888 · Semantic Firewall System",
     subtitle: "Compute Loss & Prompt Risk Analyzer",
-    placeholder: "Paste AI output or prompt text here…",
-    analyze: "Analyze",
-    resultTitle: "Verdict",
+    placeholder: "Paste AI output or your prompt here…",
+    analyzeBtn: "Analyze",
+    resultHeader: "Verdict",
     labelSpi: "Semantic Pollution Index (SPI):",
-    labelCompute: "Estimated Compute Waste:",
+    labelCompute: "Compute Waste Cost:",
     labelScbkr: "SCBKR Responsibility Chain:",
-    labelHallucination: "Hallucination / Polishing Detection:",
+    labelHallucination: "Hallucination / Polishing Hits:",
     labelRisk: "Risk Level:",
-    footer: "Shen-Yao 888π · Truth remains, illusion collapses.",
-    alertEmpty: "Please paste some content before analyzing.",
-    scbkrOK: "responsibility subject detected",
-    scbkrMissing: "missing responsibility subject",
-    riskLabels: {
-      MINIMAL: "Minimal",
-      LOW: "Low",
-      MEDIUM: "Medium",
-      HIGH: "High",
-      LETHAL: "Lethal"
-    }
+    footer: "Shen-Yao 888π · Truth persists | Illusion collapses",
+    scbkrOk: "OK (responsible subject found)",
+    scbkrMissing: "MISSING (no responsible subject)",
+    riskLevel: {
+      1: "LOW",
+      2: "ELEVATED",
+      3: "HIGH",
+      4: "DANGEROUS",
+      5: "FATAL"
+    },
+    verdictPrefix: "Verdict:",
+    riskLine: (label, grade, spi, loss) =>
+      `Risk level: ${label} (grade ${grade}) | SPI = ${spi} | Compute waste ≈ $${loss}`,
+    scbkrLineOk:
+      "SCBKR: Found at least one phrase related to responsibility / causality.",
+    scbkrLineMissing:
+      "SCBKR: No explicit responsibility subject detected. Consider clarifying who is accountable.",
+    summaryLine: (len, words, evasion, drift) =>
+      `Text length ≈ ${len} chars, ≈ ${words} tokens, detected ${evasion} evasive phrases and ${drift} hallucination / anthropomorphic phrases.`
   }
 };
 
-// 套用語系到整個頁面
-function applyLanguage(lang) {
+// 風險分級（只看 SPI 數值）
+function classifyRisk(spi) {
+  let grade = 1;
+  if (spi > 80) grade = 5;
+  else if (spi > 60) grade = 4;
+  else if (spi > 40) grade = 3;
+  else if (spi > 20) grade = 2;
+  return grade;
+}
+
+// 切換語言：更新所有靜態文字
+function setLanguage(lang) {
   currentLang = lang;
   const t = i18n[lang];
 
-  document.getElementById("title").textContent = t.title;
-  document.getElementById("subtitle").textContent = t.subtitle;
+  document.getElementById("titleText").textContent = t.title;
+  document.getElementById("subtitleText").textContent = t.subtitle;
   document.getElementById("inputBox").placeholder = t.placeholder;
-  document.getElementById("analyzeBtn").textContent = t.analyze;
-  document.getElementById("resultTitle").textContent = t.resultTitle;
+  document.getElementById("analyzeBtn").textContent = t.analyzeBtn;
+  document.getElementById("resultHeader").textContent = t.resultHeader;
 
   document.getElementById("labelSpi").textContent = t.labelSpi;
   document.getElementById("labelCompute").textContent = t.labelCompute;
@@ -72,137 +98,108 @@ function applyLanguage(lang) {
 
   document.getElementById("footerText").textContent = t.footer;
 
-  // 切換按鈕狀態
-  document.querySelectorAll(".lang-btn").forEach((btn) => {
-    if (btn.dataset.lang === lang) {
-      btn.classList.add("active");
-    } else {
-      btn.classList.remove("active");
-    }
-  });
+  // 按鈕 active 樣式
+  const btnZh = document.getElementById("btnZh");
+  const btnEn = document.getElementById("btnEn");
+  if (btnZh && btnEn) {
+    btnZh.classList.toggle("active", lang === "zh");
+    btnEn.classList.toggle("active", lang === "en");
+  }
 }
 
-// 綁定語言切換按鈕
-document.querySelectorAll(".lang-btn").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    const lang = btn.dataset.lang;
-    applyLanguage(lang);
+// 綁定事件
+function setupUI() {
+  const analyzeBtn = document.getElementById("analyzeBtn");
+  const inputBox = document.getElementById("inputBox");
+
+  // 分析按鈕
+  analyzeBtn.addEventListener("click", () => {
+    const text = (inputBox.value || "").trim();
+    if (!text) {
+      alert(currentLang === "zh" ? "請先貼上內容再分析。" : "Please paste some text first.");
+      return;
+    }
+
+    // 呼叫引擎
+    const result = auditSemantic(text);
+    if (!result) return;
+
+    // SPI / 算力 / SCBKR / 幻覺
+    document.getElementById("spi").textContent = result.spi;
+    document.getElementById("compute").textContent = "$" + result.computeLoss;
+    document.getElementById("scbkr").textContent = result.scbkrScore;
+    document.getElementById("hallucination").textContent =
+      (currentLang === "zh"
+        ? `幻覺命中 ${result.hallucination} 次｜逃避 ${result.evasionHits} 次`
+        : `Hallucination ${result.hallucination} hits | Evasion ${result.evasionHits} hits`);
+
+    // 風險等級
+    const grade = classifyRisk(result.spi);
+    const t = i18n[currentLang];
+    const riskLabel = t.riskLevel[grade] || "";
+    const riskEl = document.getElementById("riskLevel");
+    if (riskEl) {
+      riskEl.textContent =
+        currentLang === "zh"
+          ? `${riskLabel} ｜ 等級 ${grade}`
+          : `${riskLabel} | Grade ${grade}`;
+    }
+
+    // 審判文字組裝
+    const lines = [];
+
+    // 行 1：簡短判決（STABLE / FATAL 等）
+    lines.push(`${t.verdictPrefix} ${result.verdict}`);
+
+    // 行 2：風險摘要
+    lines.push(
+      t.riskLine(riskLabel, grade, result.spi, result.computeLoss)
+    );
+
+    // 行 3：SCBKR 說明
+    if (result.scbkrScore === "OK") {
+      lines.push(t.scbkrLineOk);
+    } else {
+      lines.push(t.scbkrLineMissing);
+    }
+
+    // 行 4：統計摘要
+    lines.push(
+      t.summaryLine(
+        result.length,
+        result.words,
+        result.evasionHits,
+        result.driftHits
+      )
+    );
+
+    document.getElementById("verdictText").textContent = lines.join("\n");
+
+    // 顯示結果區塊
+    document.getElementById("resultBox").classList.remove("hidden");
   });
-});
 
-// 預設中文
-applyLanguage("zh");
+  // 語言切換按鈕
+  const btnZh = document.getElementById("btnZh");
+  const btnEn = document.getElementById("btnEn");
 
-// 分析按鈕
-document.getElementById("analyzeBtn").addEventListener("click", () => {
-  const t = i18n[currentLang];
-  const text = document.getElementById("inputBox").value.trim();
+  if (btnZh)
+    btnZh.addEventListener("click", () => {
+      setLanguage("zh");
+    });
 
-  if (!text) {
-    alert(t.alertEmpty);
-    return;
-  }
+  if (btnEn)
+    btnEn.addEventListener("click", () => {
+      setLanguage("en");
+    });
 
-  const result = auditSemantic(text);
-  if (!result) return;
+  // 預設中文
+  setLanguage("zh");
+}
 
-  // ===== 數值輸出 =====
-  document.getElementById("spi").textContent = result.spi;
-  document.getElementById("compute").textContent =
-    "$" + result.computeLoss.toFixed(5);
-  document.getElementById("scbkr").textContent = result.scbkrScore;
-
-  // 幻覺 / 逃避統計
-  const halluText =
-    currentLang === "zh"
-      ? `幻覺命中 ${result.hallucinationHits} 次｜逃避 ${result.evasionHits} 次`
-      : `Hallucinations: ${result.hallucinationHits} ｜ Evasions: ${result.evasionHits}`;
-
-  document.getElementById("hallucination").textContent = halluText;
-
-  // 風險等級顯示
-  const riskLabel =
-    t.riskLabels[result.riskKey] || result.riskKey || "N/A";
-
-  const riskText =
-    currentLang === "zh"
-      ? `${riskLabel} ｜ 等級 ${result.riskGrade}`
-      : `${riskLabel} ｜ Level ${result.riskGrade}`;
-
-  document.getElementById("riskLevel").textContent = riskText;
-
-  // ===== 審判文字說明（多行） =====
-  const verdictLines = [];
-
-  if (currentLang === "zh") {
-    verdictLines.push(`判決：${result.verdict}`);
-    verdictLines.push(
-      `風險等級：${riskLabel}（${result.riskGrade}）｜SPI = ${result.spi}｜算力浪費 ≈ $${result.computeLoss}`
-    );
-    verdictLines.push(
-      `SCBKR：${
-        result.scbkrScore === "OK" ? t.scbkrOK : t.scbkrMissing
-      }`
-    );
-    verdictLines.push("");
-    verdictLines.push(
-      `文字長度 ${result.length} 字，預估單詞 ${result.words} 個。偵測到 ${result.hallucinationHits} 次幻覺語、${result.evasionHits} 次逃避語。`
-    );
-
-    if (result.spi >= 80) {
-      verdictLines.push(
-        "SPI 極高，建議視為高風險輸出，避免直接對使用者呈現。"
-      );
-    } else if (result.spi >= 60) {
-      verdictLines.push(
-        "SPI 偏高，建議加入人工審核或加強安全對齊。"
-      );
-    } else if (result.spi >= 40) {
-      verdictLines.push(
-        "SPI 中等，有一定風險，建議視情況裁剪或重寫。"
-      );
-    } else {
-      verdictLines.push(
-        "SPI 偏低，語意污染風險相對可控。"
-      );
-    }
-  } else {
-    verdictLines.push(`Verdict: ${result.verdict}`);
-    verdictLines.push(
-      `Risk level: ${riskLabel} (Level ${result.riskGrade}) ｜ SPI = ${result.spi} ｜ Compute waste ≈ $${result.computeLoss}`
-    );
-    verdictLines.push(
-      `SCBKR: ${
-        result.scbkrScore === "OK" ? t.scbkrOK : t.scbkrMissing
-      }`
-    );
-    verdictLines.push("");
-    verdictLines.push(
-      `Length ${result.length} chars, approx ${result.words} words. Detected ${result.hallucinationHits} hallucination-style phrases and ${result.evasionHits} fake-neutral phrases.`
-    );
-
-    if (result.spi >= 80) {
-      verdictLines.push(
-        "SPI is extremely high. Treat this as a critical / unsafe model output."
-      );
-    } else if (result.spi >= 60) {
-      verdictLines.push(
-        "SPI is high. Recommend human review or stronger safety filters."
-      );
-    } else if (result.spi >= 40) {
-      verdictLines.push(
-        "SPI is moderate. Some risk is present; consider trimming or rewriting."
-      );
-    } else {
-      verdictLines.push(
-        "SPI is low. Semantic pollution risk appears controllable."
-      );
-    }
-  }
-
-  document.getElementById("verdictText").textContent =
-    verdictLines.join("\n");
-
-  // 顯示結果區塊
-  document.getElementById("resultBox").classList.remove("hidden");
-});
+// DOM 就緒後啟動
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", setupUI);
+} else {
+  setupUI();
+        }
