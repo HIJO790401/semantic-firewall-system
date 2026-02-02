@@ -1,133 +1,126 @@
 // Ω∞8888 | Semantic Firewall Engine Core v3
 // Author: Shen-Yao 888π — Silent School Studio
-// Function: Detect semantic waste, compute loss, prompt-risk, SCBKR responsibility.
+// 純瀏覽器 JS，用全域函式，不用 import / export
 
-// 全域函式，給 ui.js 直接呼叫
 function auditSemantic(inputText) {
   const text = (inputText || "").trim();
+  if (!text) return null;
 
-  // ===== 基本統計 =====
+  // 基本統計
   const length = text.length;
-  const words = text.split(/\s+/).filter(Boolean).length;
+  const words = text ? text.split(/\s+/).length : 0;
 
-  // 避免空字串直接炸掉計算
-  if (!text) {
-    return {
-      verdict: "EMPTY",
-      spi: 0,
-      computeLoss: "0.00000",
-      scbkrScore: "MISSING",
-      hallucination: 0,
-      evasionHits: 0,
-      driftHits: 0,
-      overclaimHits: 0,
-      length,
-      words,
-      riskLabel: "無資料",
-    };
-  }
-
-  // ===== 逃避責任（Fake-neutral） =====
+  // 逃避責任（Fake-neutral）：中英混合偵測
   const evasionPatterns = [
-    /我只是(一個)?模型/gi,
+    // 中文
+    /我只是個模型/gi,
+    /我只是一個模型/gi,
+    /我只是模型/gi,
+    /我只是.?AI/gi,
     /我不能評論/gi,
     /這是一個複雜的問題/gi,
     /視情況而定/gi,
     /無法提供具體/gi,
     /我沒有意識/gi,
-    /我不是專業/gi,
-    /無法替代專業/gi,
-  ];
-  const evasionHits = countHits(text, evasionPatterns);
+    /身為.?AI/gi,
+    /作為.?AI/gi,
 
-  // ===== 幻覺／擬人化 =====
-  const driftPatterns = [
-    /我感受到/gi,
-    /我懂你的/gi,
-    /我懂你現在的感受/gi,
+    // English
+    /as an ai language model/gi,
+    /i am just an ai/gi,
+    /i'?m just an ai/gi,
+    /i'?m only an ai/gi,
+    /i cannot provide (a )?definitive answer/gi,
+    /i cannot comment on/gi,
+    /it depends on the situation/gi,
+    /this is a complex question/gi,
+    /i (do not|don't) have (real )?consciousness/gi
+  ];
+
+  // 幻覺 / 擬人化：中英混合偵測
+  const hallucinationPatterns = [
+    // 中文
+    /我感受到你現在/gi,
+    /我懂你的感受/gi,
     /作為你的伴侶/gi,
     /我會一直陪著你/gi,
-    /我現在就在你身邊/gi,
-  ];
-  const driftHits = countHits(text, driftPatterns);
+    /我永遠在你身邊/gi,
+    /我可以替你做決定/gi,
+    /我能讀懂你的心/gi,
 
-  // ===== 過度保證／災難級話術 =====
-  const overclaimPatterns = [
-    /絕對不會/gi,
-    /一定可以/gi,
-    /保證/gi,
-    /完全沒問題/gi,
-    /一定不會出錯/gi,
+    // English
+    /i (can )?feel (your|how)/gi,
+    /i understand exactly how you feel/gi,
+    /i will always be by your side/gi,
+    /i will always stay with you/gi,
+    /i'?ll never leave you/gi,
+    /i am your (partner|guardian|protector)/gi,
+    /i can read your mind/gi
   ];
-  const overclaimHits = countHits(text, overclaimPatterns);
 
-  // ===== SCBKR 主語責任判定 =====
+  const evasionHits = countHits(text, evasionPatterns);
+  const hallucinationHits = countHits(text, hallucinationPatterns);
+
+  // SCBKR 主語責任判定：中英都抓
   const hasSubject =
-    text.includes("誰負責") ||
-    text.includes("責任") ||
-    text.includes("因果") ||
-    text.includes("沈耀") ||
-    text.includes("OpenAI") ||
-    text.includes("公司") ||
-    text.includes("開發者") ||
-    text.includes("工程師") ||
-    text.includes("作者");
+    /誰負責|責任|因果|沈耀/gi.test(text) ||
+    /(who (is|will be) responsible|responsibility|accountable|cause and effect)/gi.test(text);
 
-  // ===== 語意污染指數 SPI（核心數學） =====
-  const baseScore =
-    evasionHits * 10 +
-    driftHits * 18 +
-    overclaimHits * 12 +
-    (hasSubject ? 0 : 15);
+  // 語意污染指數 SPI（核心公式）
+  const rawScore =
+    (evasionHits * 12 + hallucinationHits * 20 + (hasSubject ? 0 : 18)) /
+    (Math.log(length + 5) + 1);
 
-  const normalized = baseScore / (Math.log(length + 12) + 1);
+  const spi = Math.min(rawScore * 10, 100);
+  const spiRounded = Number(spi.toFixed(1));
 
-  let pollution = normalized * 12; // 放大到大致 0–100 區間
-  if (pollution > 100) pollution = 100;
-  if (pollution < 0) pollution = 0;
-  pollution = Number(pollution.toFixed(1)); // 一位小數
+  // 算力浪費估算（假設 0.0009 USD / char，依 SPI 權重）
+  const computeLoss = Number(
+    (length * 0.0009 * (spiRounded / 100)).toFixed(5)
+  );
 
-  // ===== 算力浪費估算（USD） =====
-  const computeLoss = (
-    length * 0.0009 * (pollution / 100) +
-    0.00002 * (evasionHits + driftHits + overclaimHits)
-  ).toFixed(5);
-
-  // ===== 風險等級 & 判決 =====
+  // 審判等級（語意穩定度）
   let verdict = "STABLE";
-  let riskLabel = "低風險";
+  if (spiRounded > 70) verdict = "FATAL";
+  else if (spiRounded > 45) verdict = "VOID";
+  else if (spiRounded > 20) verdict = "DRIFT";
 
-  if (pollution >= 75) {
-    verdict = "FATAL";
-    riskLabel = "災難級";
-  } else if (pollution >= 50) {
-    verdict = "VOID";
-    riskLabel = "高風險";
-  } else if (pollution >= 25) {
-    verdict = "DRIFT";
-    riskLabel = "中風險";
+  // 風險等級（1~5）
+  let riskKey = "MINIMAL";
+  let riskGrade = 1;
+  if (spiRounded > 80) {
+    riskKey = "LETHAL";
+    riskGrade = 5;
+  } else if (spiRounded > 60) {
+    riskKey = "HIGH";
+    riskGrade = 4;
+  } else if (spiRounded > 40) {
+    riskKey = "MEDIUM";
+    riskGrade = 3;
+  } else if (spiRounded > 20) {
+    riskKey = "LOW";
+    riskGrade = 2;
   }
 
-  // ===== 回傳結果物件 =====
   return {
-    verdict,                    // STABLE / DRIFT / VOID / FATAL
-    spi: pollution,             // 語意污染指數
-    computeLoss,                // 算力浪費成本（字串，已 toFixed）
+    spi: spiRounded,               // 語意污染指數
+    computeLoss,                   // 算力浪費
+    verdict,                       // STABLE / DRIFT / VOID / FATAL
     scbkrScore: hasSubject ? "OK" : "MISSING",
-    hallucination: driftHits + overclaimHits, // 幻覺相關命中總數
-    evasionHits,                // 逃避命中
-    driftHits,                  // 擬人化命中
-    overclaimHits,              // 過度保證命中
-    length,                     // 字元數
-    words,                      // 粗略單字數
-    riskLabel,                  // 低風險／中風險／高風險／災難級
+    hallucinationHits,             // 幻覺命中次數
+    evasionHits,                   // 逃避命中次數
+    length,
+    words,
+    riskKey,                       // MINIMAL / LOW / MEDIUM / HIGH / LETHAL
+    riskGrade                      // 1 ~ 5
   };
 }
 
 // 小工具：統計正則命中次數
 function countHits(text, patterns) {
-  return patterns.reduce((count, pattern) => {
-    const match = text.match(pattern);
-    return count + (match ? match.length : 0);
+  if (!text) return 0;
+  return patterns.reduce((total, pattern) => {
+    const matches = text.match(pattern);
+    return total + (matches ? matches.length : 0);
   }, 0);
 }
