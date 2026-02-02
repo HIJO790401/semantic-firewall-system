@@ -9,26 +9,29 @@
 
 <body>
   <div class="app-container">
-    <header class="app-header">
-      <!-- 雙語切換按鈕 -->
+    <!-- 頂部：語言切換 + 標題 -->
+    <div class="app-header">
       <div class="lang-toggle">
-        <button type="button" class="lang-btn active" data-lang="zh">中文</button>
-        <button type="button" class="lang-btn" data-lang="en">EN</button>
+        <button class="lang-btn active" id="btnZh" data-lang="zh">中文</button>
+        <button class="lang-btn" id="btnEn" data-lang="en">EN</button>
       </div>
 
-      <h1 id="title">Ω∞8888 · Semantic Firewall System</h1>
-      <p class="subtitle" id="subtitle">Compute Loss & Prompt Risk Analyzer</p>
-    </header>
+      <h1 id="titleText">Ω∞8888 · 語意防火牆系統</h1>
+      <p class="subtitle" id="subtitleText">
+        計算損失和快速風險分析器
+      </p>
+    </div>
 
+    <!-- 輸入區 -->
     <textarea
       id="inputBox"
       placeholder="貼上 AI 輸出或 Prompt 內容…"
     ></textarea>
-
     <button id="analyzeBtn">開始分析</button>
 
+    <!-- 結果區 -->
     <div id="resultBox" class="hidden">
-      <h2 id="resultTitle">審判結果</h2>
+      <h2 id="resultHeader">審判結果</h2>
 
       <div class="metric">
         <span id="labelSpi">語意污染指數 (SPI)：</span>
@@ -63,8 +66,8 @@
     </footer>
   </div>
 
-  <!-- 先載入引擎，再載入 UI 控制碼 -->
-  <script src="src/engine-v3.js"></script>
+  <!-- 引擎 v2 + UI 控制 -->
+  <script src="src/engine-v2.js"></script>
   <script src="ui.js"></script>
 </body>
-                              </html>
+</html>
