@@ -9,51 +9,62 @@
 
 <body>
   <div class="app-container">
-    <h1>Ω∞8888 · Semantic Firewall System</h1>
-    <p class="subtitle">Compute Loss & Prompt Risk Analyzer</p>
+    <header class="app-header">
+      <!-- 雙語切換按鈕 -->
+      <div class="lang-toggle">
+        <button type="button" class="lang-btn active" data-lang="zh">中文</button>
+        <button type="button" class="lang-btn" data-lang="en">EN</button>
+      </div>
+
+      <h1 id="title">Ω∞8888 · Semantic Firewall System</h1>
+      <p class="subtitle" id="subtitle">Compute Loss & Prompt Risk Analyzer</p>
+    </header>
 
     <textarea
       id="inputBox"
-      placeholder="貼上 AI 輸出或 Prompt 內容…"></textarea>
+      placeholder="貼上 AI 輸出或 Prompt 內容…"
+    ></textarea>
+
     <button id="analyzeBtn">開始分析</button>
 
     <div id="resultBox" class="hidden">
-      <h2>審判結果</h2>
+      <h2 id="resultTitle">審判結果</h2>
 
       <div class="metric">
-        <span>語意污染指數 (SPI)：</span>
+        <span id="labelSpi">語意污染指數 (SPI)：</span>
         <strong id="spi"></strong>
       </div>
 
       <div class="metric">
-        <span>算力浪費成本：</span>
+        <span id="labelCompute">算力浪費成本：</span>
         <strong id="compute"></strong>
       </div>
 
       <div class="metric">
-        <span>SCBKR 責任鏈：</span>
+        <span id="labelScbkr">SCBKR 責任鏈：</span>
         <strong id="scbkr"></strong>
       </div>
 
       <div class="metric">
-        <span>幻覺 / 拋光偵測：</span>
+        <span id="labelHallucination">幻覺 / 拋光偵測：</span>
         <strong id="hallucination"></strong>
       </div>
 
       <div class="metric">
-        <span>風險等級：</span>
+        <span id="labelRisk">風險等級：</span>
         <strong id="riskLevel"></strong>
       </div>
 
       <pre id="verdictText"></pre>
     </div>
 
-    <footer>
+    <footer id="footerText">
       Shen-Yao 888π · 唯真長存｜幻象歸零
     </footer>
   </div>
 
-  <!-- 只載入一支整合 JS -->
-  <script src="main.js"></script>
+  <!-- 先載入引擎，再載入 UI 控制碼 -->
+  <script src="src/engine-v3.js"></script>
+  <script src="ui.js"></script>
 </body>
-</html>
+                              </html>
