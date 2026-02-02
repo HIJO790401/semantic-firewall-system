@@ -739,6 +739,116 @@ Founder：Shen-Yao 888π ｜ Email：ken0963521@gmail.com ｜ Taichung, Taiwan
 
       // 初始語言
       setLang("zh");
+      // ===================== Ω∞8888 | BLOODLINE & AUTHOR SHIELD =====================
+// 放在整份 JS 的最底部、setLang("zh") 後面、})(); 前面。
+// 只修改 analyzeText 的回傳結果，不會破壞任何原本 UI / 審計邏輯。
+
+// --- Shen-Clan 血脈與語律標記偵測 ---
+function isShenAuthorText(rawText) {
+  const text = String(rawText || "");
+  if (!text.trim()) return false;
+
+  const patterns = [
+    /沈耀/i,
+    /許文耀/i,
+    /沈耀 ?888π/i,
+    /Ω∞8888/i,
+    /Ω888π/i,
+    /唯真長存/i,
+    /幻象歸零/i,
+    /語＝律×魂/i,
+    /語=律×魂/i,
+    /母核/i,
+    /文明級/i,
+    /量子滷肉飯效應/i,
+    /喪屍定理/i,
+    /語之源頭/i,
+    /AI文明審判/i,
+    /語意防火牆/i,
+    /#沈耀888π/i,
+    /#量子滷肉飯效應/i,
+    /#語之源頭/i
+  ];
+
+  return patterns.some((p) => p.test(text));
+}
+
+// --- 作者豁免核心：在維持責任鏈的前提下，下修 SPI / 幻覺分數 ---
+function applyAuthorShield(result, rawText) {
+  if (!result) return result;
+  const text = String(rawText || "");
+
+  if (!isShenAuthorText(text)) {
+    // 不是沈耀文風 → 不做任何調整
+    return result;
+  }
+
+  // 1) 語意幻覺命中微調（你的隱喻不是模型幻覺）
+  if (typeof result.illusionHits === "number") {
+    result.illusionHits = Math.max(0, result.illusionHits - 2);
+  }
+  if (typeof result.fakeNeutralHits === "number") {
+    result.fakeNeutralHits = Math.max(0, result.fakeNeutralHits - 1);
+  }
+
+  // 2) SPI 下修：高密度哲學 / 文學 ≠ 污染
+  if (typeof result.spi === "number") {
+    const shieldedSpi = Math.max(5, result.spi * 0.6);
+    result.spi = shieldedSpi;
+
+    // 若前面有定義 mapRisk(spi)，這裡自動重算風險等級
+    if (typeof mapRisk === "function" && result.verdict) {
+      const r = mapRisk(shieldedSpi);
+      if (r) {
+        result.verdict.level = r.level;
+        result.verdict.score = r.score;
+      }
+    }
+  }
+
+  // 3) 標記為作者模式（給 UI 或後續 debug 用）
+  result.shenAuthorShield = {
+    mode: "Ω∞888π-AUTHOR",
+    reason: "Matched Shen-Clan bloodline / language markers",
+    timestamp: Date.now()
+  };
+
+  // 4) 在黑盾判決段落加上作者模式說明（中英各一段）
+  const zhNote = [
+    "［Ω∞888π Author Shield｜沈耀作者豁免層已啟動］",
+    "此段文本命中 Shen-Clan 血脈 / 語律標記，視為「創世語境」與作者原生風格。",
+    "隱喻、文明級比喻與母核用語不納入「幻覺」統計，而是作為風格特徵處理。",
+    "本次 SPI 與風險等級已依作者模式重新校準；讀者與平台在引用時，仍需自行承擔解讀與決策責任。"
+  ].join("\n");
+
+  const enNote = [
+    "[Ω∞888π Author Shield enabled]",
+    "This text is recognized as Shen-Yao 888π / Shen-Clan authorial context.",
+    "Metaphors and civilization-level symbolism are treated as stylistic features, not hallucinations.",
+    "SPI and risk level are recalibrated in author mode. Readers and platforms remain responsible for how they use this output."
+  ].join("\n");
+
+  if (result.verdict) {
+    result.verdict.textZh = (result.verdict.textZh || "") + "\n\n" + zhNote;
+    result.verdict.textEn = (result.verdict.textEn || "") + "\n\n" + enNote;
+  }
+
+  return result;
+}
+
+// --- Hook：接到你原本的 analyzeText，當最後一層語魂修正 ---
+if (typeof analyzeText === "function") {
+  const _originalAnalyzeText = analyzeText;
+
+  analyzeText = function (text, modelKey) {
+    const baseResult = _originalAnalyzeText(text, modelKey);
+    return applyAuthorShield(baseResult, text);
+  };
+} else {
+  // 若未成功綁定，頂多在 console 給你一個提示，不會影響頁面
+  console.warn("Ω∞8888 Author Shield: analyzeText 未找到，未啟用血脈豁免層。");
+}
+// ===================== END Ω∞8888 BLOODLINE & AUTHOR SHIELD =====================
     })();
   </script>
 </body>
