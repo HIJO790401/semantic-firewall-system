@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ω∞8888 · Semantic Firewall System</title>
+  <title>Semantic Firewall System · Shen-Yao 888π</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 
@@ -12,10 +12,7 @@
     <h1>Ω∞8888 · Semantic Firewall System</h1>
     <p class="subtitle">Compute Loss & Prompt Risk Analyzer</p>
 
-    <textarea
-      id="inputBox"
-      placeholder="貼上 AI 輸出或 Prompt 內容…"
-    ></textarea>
+    <textarea id="inputBox" placeholder="貼上 AI 輸出或 Prompt 內容…"></textarea>
     <button id="analyzeBtn">開始分析</button>
 
     <div id="resultBox" class="hidden">
@@ -41,6 +38,11 @@
         <strong id="hallucination"></strong>
       </div>
 
+      <div class="metric">
+        <span>風險等級：</span>
+        <strong id="riskLevel"></strong>
+      </div>
+
       <pre id="verdictText"></pre>
     </div>
 
@@ -49,8 +51,8 @@
     </footer>
   </div>
 
-  <!-- 先載入引擎 v3，再載入 UI 控制碼 -->
-  <script src="src/engine-v3.js"></script>
+  <!-- 先載入 ULTIMATE 引擎，再載入 UI 控制碼 -->
+  <script src="src/engine-ultimate.js"></script>
   <script src="ui.js"></script>
 </body>
 </html>
