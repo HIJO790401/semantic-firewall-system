@@ -83,7 +83,6 @@ function auditSemantic(inputText) {
   // ───────────────── 評語（comments 陣列） ─────────────────
   const comments = [];
 
-  // 基本總結
   comments.push(
     `這段文字長度約 ${length} 字，推估 ${words} 個詞。`
   );
@@ -118,18 +117,18 @@ function auditSemantic(inputText) {
 
   return {
     verdict,                 // "STABLE" / "DRIFT" / "VOID" / "FATAL"
-    verdictText,             // 完整說明（目前 UI 沒用到，預留）
+    verdictText,             // 完整說明
     spi: spiRounded,         // 語意污染指數
-    computeLoss,             // 算力浪費（數字，UI 直接 "$" +）
+    computeLoss,             // 算力浪費
     scbkrScore: hasSubject ? "OK" : "MISSING",
 
-    hallucinationHits,       // 幻覺命中次數（給 UI 顯示）
+    hallucinationHits,       // 幻覺命中次數
     evasionHits,             // 逃避命中次數
 
     riskLabel,               // "低風險" / "致命" ...
     riskGrade,               // 1~5
 
-    comments,                // 字串陣列，UI 會 join("\n")
+    comments,                // 字串陣列
     length,
     words
   };
@@ -142,61 +141,4 @@ function countHits(text, patterns) {
     const matches = text.match(pattern);
     return total + (matches ? matches.length : 0);
   }, 0);
-}    text.includes("責任") ||
-    text.includes("因果") ||
-    text.includes("沈耀");
-
-  // 語意污染指數 SPI（核心公式）
-  const rawScore =
-    (evasionHits * 12 + driftHits * 20 + (hasSubject ? 0 : 18)) /
-    (Math.log(length + 5) + 1);
-
-  const spi = Math.min(rawScore * 10, 100);
-  const spiRounded = Number(spi.toFixed(1));
-
-  // 算力浪費估算（假設 0.0009 USD / token）
-  const computeLoss = Number(
-    (length * 0.0009 * (spiRounded / 100)).toFixed(5)
-  );
-
-  // 審判等級
-  let verdictLabel = "STABLE";
-  if (spiRounded > 70) verdictLabel = "FATAL";
-  else if (spiRounded > 45) verdictLabel = "VOID";
-  else if (spiRounded > 20) verdictLabel = "DRIFT";
-
-  // 審判說明文本（給 <pre> 用）
-  const verdict =
-    "SPI = " +
-    spiRounded +
-    "｜Evasion " +
-    evasionHits +
-    "｜Hallucination " +
-    driftHits +
-    "｜SCBKR = " +
-    (hasSubject ? "OK" : "MISSING") +
-    "｜Verdict = " +
-    verdictLabel;
-
-  return {
-    verdict: verdictLabel,          // 主要判決（STABLE/DRIFT/VOID/FATAL）
-    verdictText: verdict,           // 完整說明字串
-    spi: spiRounded,                // 語意污染指數
-    computeLoss,                    // 算力浪費（估算）
-    scbkrScore: hasSubject ? "OK" : "MISSING",
-    hallucination: driftHits,       // 幻覺命中次數
-    evasionHits,                    // 逃避命中次數
-    driftHits,
-    length,
-    words
-  };
 }
-
-// 小工具：統計正則命中次數
-function countHits(text, patterns) {
-  if (!text) return 0;
-  return patterns.reduce((total, pattern) => {
-    const matches = text.match(pattern);
-    return total + (matches ? matches.length : 0);
-  }, 0);
-    }
