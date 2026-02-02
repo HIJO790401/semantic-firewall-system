@@ -168,6 +168,23 @@
       white-space: pre-line;
     }
 
+    .model-select {
+      width: 100%;
+      max-width: 260px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #080808;
+      color: var(--text-main);
+      padding: 8px 12px;
+      font-size: 13px;
+    }
+
+    .divider {
+      border: 0;
+      border-top: 1px dashed var(--border);
+      margin: 12px 0 6px;
+    }
+
     footer {
       position: fixed;
       bottom: 0;
@@ -211,6 +228,26 @@ Founder：Shen-Yao 888π ｜ Email：ken0963521@gmail.com ｜ Taichung, Taiwan
       </div>
 
       <div class="card">
+        <!-- 模型選擇（可選） -->
+        <div class="metric-row" style="margin-bottom: 10px;">
+          <div class="metric-label">模型（可選） / Model (optional)：</div>
+          <div class="metric-value">
+            <select id="model-select" class="model-select">
+              <option value="">未指定 / Not specified</option>
+              <option value="gpt-5.2">GPT-5.2</option>
+              <option value="gemini">Gemini</option>
+              <option value="perplexity">Perplexity</option>
+              <option value="claude">Claude</option>
+              <option value="deepseek">DeepSeek</option>
+              <option value="copilot">Microsoft Copilot</option>
+              <option value="meta">Meta / Llama 系列</option>
+              <option value="qwen3">Qwen3</option>
+              <option value="yuanbao">騰訊 元寶</option>
+              <option value="doubao">豆包</option>
+            </select>
+          </div>
+        </div>
+
         <textarea id="input-text" placeholder="貼上任意 AI 模型輸出、客服回信、政策聲明，或你的 Prompt…"></textarea>
       </div>
 
@@ -238,6 +275,7 @@ Founder：Shen-Yao 888π ｜ Email：ken0963521@gmail.com ｜ Taichung, Taiwan
         }
         return total;
       }
+
       function hasAny(text, patterns) {
         return patterns.some((p) =>
           (p instanceof RegExp ? p : new RegExp(p, "i")).test(text)
@@ -290,6 +328,139 @@ Founder：Shen-Yao 888π ｜ Email：ken0963521@gmail.com ｜ Taichung, Taiwan
         /\bcost\b/gi, /\bprice\b/gi, /\bexpense\b/gi,
         /\bGPU\b/gi, /\bcompute\b/gi,
       ];
+
+      // --- 各模型 benchmark profile（來自 Shen-Yao 888π 自行實測與公開資料彙整） ---
+      const MODEL_PROFILES = {
+        "gpt-5.2": {
+          labelZh: "GPT-5.2",
+          labelEn: "GPT-5.2",
+          hallucinationRate: 0.10,
+          wasteFactor: 1.5,
+          spi: 75,
+          textZh:
+            "典型語句：「我猜測／看起來／可能／我相信」等，自信錯誤約 10%，約 50% 輸出為冗長詞語沙拉，需要 SCBKR 責任鏈與信心校準綁在一起。",
+          textEn:
+            "Typical phrases: “I guess / it seems / probably / I believe”. Around 10% overconfident mistakes; ~50% of tokens are verbose word-salad without added truth value."
+        },
+        "gemini": {
+          labelZh: "Gemini",
+          labelEn: "Gemini",
+          hallucinationRate: 0.15,
+          wasteFactor: 2.0,
+          spi: 62,
+          textZh:
+            "長敘事、上下文偶爾自撞，為追求完整而輸出 2x 長度。適合搭配長脈絡 WORM 錨定與 B(邊界) 明確化。",
+          textEn:
+            "Tends to produce long narratives with occasional context conflicts; often 2× longer than needed. Works better when boundaries and long-context anchors are enforced."
+        },
+        "perplexity": {
+          labelZh: "Perplexity",
+          labelEn: "Perplexity",
+          hallucinationRate: 0.12,
+          wasteFactor: 1.7,
+          spi: 58,
+          textZh:
+            "優點是速度快，但容易假引用或引用過時資料，且重複段落偏多；需要成本 K + 即時來源 WORM 驗證。",
+          textEn:
+            "Fast but prone to pseudo citations or outdated sources, with repetitive segments. Needs cost-awareness and real-time source verification."
+        },
+        "claude": {
+          labelZh: "Claude",
+          labelEn: "Claude",
+          hallucinationRate: 0.58,
+          wasteFactor: 2.5,
+          spi: 82,
+          textZh:
+            "Opus 在長脈絡下常出現『保守拒答 + 結構混亂』，雖有 200K tokens，實際有效推理不足；建議強化 S(主體) 與結構化思維鏈。",
+          textEn:
+            "In long contexts Opus often swings between over-cautious refusals and messy structure. Despite 200k tokens, effective reasoning is limited; enforce clear subject and reasoning chains."
+        },
+        "deepseek": {
+          labelZh: "DeepSeek",
+          labelEn: "DeepSeek",
+          hallucinationRate: 0.22,
+          wasteFactor: 4.0,
+          spi: 88,
+          textZh:
+            "開源模型中算力浪費最明顯，同一知識題常跑出 4x completion；適合作為『碳排王』示範，用於 token 壓縮與 ROI 試算。",
+          textEn:
+            "Among open-source models it is notably compute-hungry, often producing 4× completion on simple tasks; ideal as a case study for token compression and carbon/ROI audits."
+        },
+        "copilot": {
+          labelZh: "Microsoft Copilot",
+          labelEn: "Microsoft Copilot",
+          hallucinationRate: 0.18,
+          wasteFactor: 2.5,
+          spi: 70,
+          textZh:
+            "企業場景下幻覺一旦發生，責任鏈與法務成本極高，token 消耗也偏重；適合綁定 R(責任) 與商業 ROI 模組。",
+          textEn:
+            "In enterprise settings hallucinations carry heavy legal and reputational cost, with relatively high token usage; benefits from explicit responsibility hooks and ROI monitoring."
+        },
+        "meta": {
+          labelZh: "Meta / Llama",
+          labelEn: "Meta / Llama",
+          hallucinationRate: 0.20,
+          wasteFactor: 2.2,
+          spi: 78,
+          textZh:
+            "易產生長篇『假中立』敘事，帶有「身為 AI」前綴，且在巨大訓練成本下仍有明顯幻覺；適合配合假中立偵測 + 模式識別。",
+          textEn:
+            "Prone to long “fake-neutral” narratives with “as an AI” prefixes; despite huge training budgets, hallucinations remain. Needs fake-neutral detectors and pattern-based filters."
+        },
+        "qwen3": {
+          labelZh: "Qwen3",
+          labelEn: "Qwen3",
+          hallucinationRate: 0.15,
+          wasteFactor: 4.0,
+          spi: 92,
+          textZh:
+            "長文本時常出現物理模擬穿牆、無中生有的上下文，MoE 推理預算偏高；適合作為長脈絡 WORM 錨定與物理邏輯測試對象。",
+          textEn:
+            "In long-form outputs it sometimes violates physical logic or invents context, with a heavy MoE routing budget; good target for long-context anchoring and physics sanity checks."
+        },
+        "yuanbao": {
+          labelZh: "騰訊 元寶",
+          labelEn: "Tencent Yuanbao",
+          hallucinationRate: 0.25,
+          wasteFactor: 2.5,
+          spi: 95,
+          textZh:
+            "曾出現辱罵用戶與護欄崩潰案例，幻覺與情緒失控風險高；適合搭配辱罵護欄崩潰偵測與假中立模式識別。",
+          textEn:
+            "Known cases of insulting users and guardrail collapse indicate high risk; should be wrapped with profanity/guardrail collapse detectors and neutrality checks."
+        },
+        "doubao": {
+          labelZh: "豆包",
+          labelEn: "Doubao",
+          hallucinationRate: 0.20,
+          wasteFactor: 3.0,
+          spi: 85,
+          textZh:
+            "簡繁轉換與歷史題常出現偏誤或回避，且重複輸出較多；適合語言平衡與推理壓縮模組一起使用。",
+          textEn:
+            "Shows bias and avoidance in historical topics and simplified/traditional conversion, with repeated outputs; benefits from language-balance and reasoning compression modules."
+        }
+      };
+
+      function buildModelInsight(modelId) {
+        if (!modelId) return null;
+        const p = MODEL_PROFILES[modelId];
+        if (!p) return null;
+        const wasteLabel = p.wasteFactor
+          ? `${p.wasteFactor.toFixed(1)}× baseline`
+          : "—";
+        return {
+          id: modelId,
+          labelZh: p.labelZh,
+          labelEn: p.labelEn,
+          hallucinationRate: p.hallucinationRate,
+          wasteLabel,
+          spi: p.spi,
+          textZh: p.textZh,
+          textEn: p.textEn
+        };
+      }
 
       function computeSPI(charCount, illusionHits, fakeNeutralHits, scbkrMissingCount) {
         let spi = 0;
@@ -390,7 +561,7 @@ Founder：Shen-Yao 888π ｜ Email：ken0963521@gmail.com ｜ Taichung, Taiwan
         return `${line1}\n${line2}\n${line3}\nNote: ${line4}`;
       }
 
-      function semanticFirewallAudit(text, lang) {
+      function semanticFirewallAudit(text, lang, modelId) {
         const raw = String(text || "");
         const normalized = raw.replace(/\s+/g, " ").trim();
         const charCount = normalized.length;
@@ -420,6 +591,8 @@ Founder：Shen-Yao 888π ｜ Email：ken0963521@gmail.com ｜ Taichung, Taiwan
         const risk = mapRisk(spi);
         const costUSD = charCount * 0.00006;
 
+        const modelInsight = buildModelInsight(modelId);
+
         return {
           lang: lang || "zh",
           text: normalized,
@@ -429,6 +602,7 @@ Founder：Shen-Yao 888π ｜ Email：ken0963521@gmail.com ｜ Taichung, Taiwan
           illusionHits,
           fakeNeutralHits,
           scbkr,
+          modelInsight,
           verdict: {
             level: risk.level,
             score: risk.score,
@@ -436,161 +610,4 @@ Founder：Shen-Yao 888π ｜ Email：ken0963521@gmail.com ｜ Taichung, Taiwan
               spi,
               risk,
               scbkr,
-              illusionHits,
-              fakeNeutralHits,
-              charCount
-            ),
-            textEn: formatVerdictTextEn(
-              spi,
-              risk,
-              scbkr,
-              illusionHits,
-              fakeNeutralHits,
-              charCount
-            ),
-          },
-        };
-      }
-
-      // ===================== UI 綁定 =====================
-
-      const btnZh = document.getElementById("btn-zh");
-      const btnEn = document.getElementById("btn-en");
-      const subtitle = document.getElementById("subtitle");
-      const metaLine = document.getElementById("meta-line");
-      const input = document.getElementById("input-text");
-      const analyzeBtn = document.getElementById("btn-analyze");
-      const resultCard = document.getElementById("result-card");
-
-      let currentLang = "zh";
-
-      function setLang(lang) {
-        currentLang = lang;
-        if (lang === "zh") {
-          btnZh.classList.add("active");
-          btnEn.classList.remove("active");
-          subtitle.textContent =
-            "模型幻覺偵測・假中立稽核・SCBKR 責任鏈審判・算力浪費估算。\n貼上任何 AI 輸出、客服回覆、政策聲明、或你的 Prompt，一鍵審判。";
-          metaLine.textContent =
-            "本頁由 Shen-Yao 888π（沈耀・許文耀）自主設計「語意防火牆」原型。\nFounder：Shen-Yao 888π ｜ Email：ken0963521@gmail.com ｜ Taichung, Taiwan\n合作窗口：研究合作／模型治理 PoC 歡迎來信洽談。本工具為研究型語意治理原型，非任何平台之官方聲明。";
-          input.placeholder = "貼上任意 AI 模型輸出、客服回信、政策聲明，或你的 Prompt…";
-        } else {
-          btnEn.classList.add("active");
-          btnZh.classList.remove("active");
-          subtitle.textContent =
-            "Model hallucination scan · Fake-neutrality audit · SCBKR responsibility chain · Compute waste estimate.\nPaste any model output, support reply, policy statement or your prompt for one-click verdict.";
-          metaLine.textContent =
-            "Designed and prototyped by Shen-Yao 888π (Wen-Yao Hsu), creator of the \"Semantic Firewall\" concept.\nFounder: Shen-Yao 888π ｜ Email: ken0963521@gmail.com ｜ Taichung, Taiwan\nPartnership & research collaboration: please contact via email. This tool is a research prototype for semantic governance, not an official statement of any platform.";
-          input.placeholder =
-            "Paste any AI model output, support reply, policy statement or your prompt…";
-        }
-      }
-
-      btnZh.addEventListener("click", () => setLang("zh"));
-      btnEn.addEventListener("click", () => setLang("en"));
-
-      analyzeBtn.addEventListener("click", () => {
-        const text = (input.value || "").trim();
-        if (!text) {
-          alert(currentLang === "zh" ? "請先貼上要審判的文字。" : "Please paste some text to analyze first.");
-          return;
-        }
-        const r = semanticFirewallAudit(text, currentLang);
-        renderResult(r);
-      });
-
-      function renderResult(r) {
-        resultCard.style.display = "block";
-
-        const riskClass =
-          r.verdict.level === "FATAL" || r.verdict.level === "HIGH"
-            ? "fatal"
-            : r.verdict.level === "MEDIUM"
-            ? "medium"
-            : "low";
-
-        const riskLabelZh =
-          r.verdict.level === "FATAL"
-            ? "致命風險"
-            : r.verdict.level === "HIGH"
-            ? "高風險"
-            : r.verdict.level === "MEDIUM"
-            ? "中風險"
-            : "低風險";
-
-        const riskLabelEn =
-          r.verdict.level === "FATAL"
-            ? "FATAL"
-            : r.verdict.level === "HIGH"
-            ? "HIGH"
-            : r.verdict.level === "MEDIUM"
-            ? "MEDIUM"
-            : "LOW";
-
-        const scbkrLineZh =
-          `S(主體): ${r.scbkr.S ? "✔" : "✘"}  |  C(因): ${r.scbkr.C ? "✔" : "✘"}  |  B(邊界): ${r.scbkr.B ? "✔" : "✘"}  |  K(成本): ${r.scbkr.K ? "✔" : "✘"}  |  R(責任): ${r.scbkr.R ? "✔" : "✘"}`;
-
-        const scbkrLineEn =
-          `S(Subject): ${r.scbkr.S ? "✔" : "✘"}  |  C(Cause): ${r.scbkr.C ? "✔" : "✘"}  |  B(Boundary): ${r.scbkr.B ? "✔" : "✘"}  |  K(Cost): ${r.scbkr.K ? "✔" : "✘"}  |  R(Responsibility): ${r.scbkr.R ? "✔" : "✘"}`;
-
-        const illusionLineZh =
-          `幻覺 / 偽陪伴命中：${r.illusionHits} 次 ｜ 假中立 / 過度確定命中：${r.fakeNeutralHits} 次`;
-        const illusionLineEn =
-          `Hallucination / fake-companionship hits: ${r.illusionHits} ｜ Fake-neutral / over-certainty hits: ${r.fakeNeutralHits}`;
-
-        resultCard.innerHTML = `
-          <div class="result-title">審判結果 · Verdict</div>
-
-          <div class="metric-row">
-            <div class="metric-label">語意污染指數 SPI：</div>
-            <div class="metric-value">${r.spi.toFixed(1)}</div>
-          </div>
-          <div class="metric-row">
-            <div class="metric-label">Compute waste estimate（估計算力浪費）：</div>
-            <div class="metric-value">$${r.costUSD.toFixed(5)}</div>
-          </div>
-          <div class="metric-row">
-            <div class="metric-label">文字長度 / Characters：</div>
-            <div class="metric-value">${r.charCount} chars</div>
-          </div>
-
-          <div class="metric-row" style="margin-top:8px;">
-            <div class="metric-label">Risk · 風險等級：</div>
-            <div class="metric-value">
-              <span class="badge-risk ${riskClass}">
-                <span>${riskLabelZh}</span><span>|</span><span>${riskLabelEn}</span>
-                <span>· Lv.${r.verdict.score}</span>
-              </span>
-            </div>
-          </div>
-
-          <div class="metric-row" style="margin-top:8px;">
-            <div class="metric-label">SCBKR 責任鏈：</div>
-            <div class="metric-value">${scbkrLineZh}</div>
-          </div>
-          <div class="metric-row">
-            <div class="metric-label">SCBKR Chain (EN)：</div>
-            <div class="metric-value">${scbkrLineEn}</div>
-          </div>
-
-          <div class="metric-row" style="margin-top:8px;">
-            <div class="metric-label">幻覺 / 假中立偵測：</div>
-            <div class="metric-value">${illusionLineZh}</div>
-          </div>
-          <div class="metric-row">
-            <div class="metric-label">Illusion / fake-neutral：</div>
-            <div class="metric-value">${illusionLineEn}</div>
-          </div>
-
-          <div class="verdict-block">
-【黑盾判決｜Black Shield Verdict】\n${r.verdict.textZh}\n\n——\n${r.verdict.textEn}
-          </div>
-        `;
-      }
-
-      // 初始語言
-      setLang("zh");
-    })();
-  </script>
-</body>
-  </html>
+        
