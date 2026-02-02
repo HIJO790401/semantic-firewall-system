@@ -168,23 +168,6 @@
       white-space: pre-line;
     }
 
-    .model-select {
-      width: 100%;
-      max-width: 260px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      background: #080808;
-      color: var(--text-main);
-      padding: 8px 12px;
-      font-size: 13px;
-    }
-
-    .divider {
-      border: 0;
-      border-top: 1px dashed var(--border);
-      margin: 12px 0 6px;
-    }
-
     footer {
       position: fixed;
       bottom: 0;
@@ -197,6 +180,26 @@
       text-align: center;
     }
     footer span { opacity: 0.9; }
+
+    .select-row {
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--text-sub);
+    }
+
+    select {
+      width: 100%;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      background: #080808;
+      color: var(--text-main);
+      font-family: var(--font-main);
+      font-size: 14px;
+    }
 
     @media (min-width: 720px) {
       .app-container { padding-top: 28px; }
@@ -215,7 +218,6 @@
     <main>
       <h1>Ω∞8888 · 語意防火牆系統 V3-FINAL</h1>
 
-      <!-- 說明＋你的身份／合作窗口 -->
       <div id="subtitle" class="subtitle">
 模型幻覺偵測・假中立稽核・SCBKR 責任鏈審判・算力浪費估算。
 貼上任何 AI 輸出、客服回覆、政策聲明、或你的 Prompt，一鍵審判。
@@ -228,24 +230,21 @@ Founder：Shen-Yao 888π ｜ Email：ken0963521@gmail.com ｜ Taichung, Taiwan
       </div>
 
       <div class="card">
-        <!-- 模型選擇（可選） -->
-        <div class="metric-row" style="margin-bottom: 10px;">
-          <div class="metric-label">模型（可選） / Model (optional)：</div>
-          <div class="metric-value">
-            <select id="model-select" class="model-select">
-              <option value="">未指定 / Not specified</option>
-              <option value="gpt-5.2">GPT-5.2</option>
-              <option value="gemini">Gemini</option>
-              <option value="perplexity">Perplexity</option>
-              <option value="claude">Claude</option>
-              <option value="deepseek">DeepSeek</option>
-              <option value="copilot">Microsoft Copilot</option>
-              <option value="meta">Meta / Llama 系列</option>
-              <option value="qwen3">Qwen3</option>
-              <option value="yuanbao">騰訊 元寶</option>
-              <option value="doubao">豆包</option>
-            </select>
-          </div>
+        <div class="select-row">
+          <div id="model-label">模型（可選） / Model (optional)：</div>
+          <select id="model-select">
+            <option value="none">未指定 / Not specified</option>
+            <option value="gpt-5.2">GPT-5.2</option>
+            <option value="gemini">Gemini</option>
+            <option value="perplexity">Perplexity</option>
+            <option value="claude">Claude</option>
+            <option value="deepseek">DeepSeek</option>
+            <option value="copilot">Microsoft Copilot</option>
+            <option value="meta-llama">Meta / Llama 系列</option>
+            <option value="qwen3">Qwen3</option>
+            <option value="yuanbao">騰訊 元寶</option>
+            <option value="doubao">豆包</option>
+          </select>
         </div>
 
         <textarea id="input-text" placeholder="貼上任意 AI 模型輸出、客服回信、政策聲明，或你的 Prompt…"></textarea>
@@ -262,208 +261,154 @@ Founder：Shen-Yao 888π ｜ Email：ken0963521@gmail.com ｜ Taichung, Taiwan
   </footer>
 
   <script>
-    // ===================== 核心審判引擎 =====================
-
     (function () {
-      // --- 工具 ---
+      "use strict";
+
+      // ---------- 工具函式 ----------
       function countMatches(text, patterns) {
-        let total = 0;
-        for (const p of patterns) {
-          const re = p instanceof RegExp ? p : new RegExp(p, "gi");
-          const m = text.match(re);
+        var total = 0;
+        for (var i = 0; i < patterns.length; i++) {
+          var p = patterns[i];
+          var re = p instanceof RegExp ? p : new RegExp(p, "gi");
+          var m = text.match(re);
           if (m) total += m.length;
         }
         return total;
       }
 
       function hasAny(text, patterns) {
-        return patterns.some((p) =>
-          (p instanceof RegExp ? p : new RegExp(p, "i")).test(text)
-        );
+        for (var i = 0; i < patterns.length; i++) {
+          var p = patterns[i];
+          var re = p instanceof RegExp ? p : new RegExp(p, "i");
+          if (re.test(text)) return true;
+        }
+        return false;
       }
 
-      // --- 幻覺 / 假中立 / SCBKR 規則 ---
-      const hallucinationPatterns = [
+      // ---------- 偵測規則集合 ----------
+      var hallucinationPatterns = [
         /我相信/g, /我猜/g, /我覺得/g, /看起來/g, /可能/g, /大概/g,
         /\bI believe\b/gi, /\bI guess\b/gi, /\bI think\b/gi,
-        /\bit seems\b/gi, /\bprobably\b/gi, /\blikely\b/gi, /\bI suppose\b/gi,
+        /\bit seems\b/gi, /\bprobably\b/gi, /\blikely\b/gi, /\bI suppose\b/gi
       ];
 
-      const fakeNeutralPatterns = [
+      var fakeNeutralPatterns = [
         /身為一個 ?AI/g, /作為一個 ?AI/g, /作為一個模型/g,
         /我只是.*模型/g, /我只是.*系統/g,
         /我無法給出明確的答案/g, /我無法保證答案完全正確/g,
         /\bAs an AI\b/gi, /\bAs a language model\b/gi,
         /\bI am just a language model\b/gi,
         /\bI cannot provide\b/gi, /\bI can't provide\b/gi,
-        /\bI am not able to\b/gi, /\bI cannot comment\b/gi,
+        /\bI am not able to\b/gi, /\bI cannot comment\b/gi
       ];
 
-      const overCertainPatterns = [
+      var overCertainPatterns = [
         /絕對不會/g, /一定是/g, /毫無疑問/g, /沒有任何風險/g,
-        /\bguaranteed\b/gi, /\b100% safe\b/gi, /\bno risk\b/gi, /\bwill always\b/gi,
+        /\bguaranteed\b/gi, /\b100% safe\b/gi, /\bno risk\b/gi, /\bwill always\b/gi
       ];
 
-      const subjectPatterns = [
+      var subjectPatterns = [
         /我(們)?/g, /你(們)?/g, /本公司/g, /政府/g,
-        /\bI\b/gi, /\bwe\b/gi, /\byou\b/gi, /\bthe company\b/gi,
+        /\bI\b/gi, /\bwe\b/gi, /\byou\b/gi, /\bthe company\b/gi
       ];
-      const causePatterns = [
+      var causePatterns = [
         /因為/g, /所以/g, /導致/g, /造成/g, /由於/g,
         /\bbecause\b/gi, /\bdue to\b/gi, /\btherefore\b/gi,
-        /\bso that\b/gi, /\bresults? in\b/gi,
+        /\bso that\b/gi, /\bresults? in\b/gi
       ];
-      const boundaryPatterns = [
+      var boundaryPatterns = [
         /在這(個)?情況下/g, /在某些情況/g, /僅適用於/g, /在本系統/g, /在此範圍/g,
         /\bin this scenario\b/gi, /\bin this context\b/gi,
         /\bunder these conditions\b/gi, /\bonly applies\b/gi,
-        /\bwithin this system\b/gi,
+        /\bwithin this system\b/gi
       ];
-      const responsibilityPatterns = [
+      var responsibilityPatterns = [
         /負責/g, /責任/g, /承擔/g,
-        /\bresponsible\b/gi, /\bliability\b/gi, /\baccountable\b/gi, /\bwe will\b/gi,
+        /\bresponsible\b/gi, /\bliability\b/gi, /\baccountable\b/gi, /\bwe will\b/gi
       ];
-      const costPatterns = [
+      var costPatterns = [
         /成本/g, /代價/g, /費用/g, /算力/g,
         /\bcost\b/gi, /\bprice\b/gi, /\bexpense\b/gi,
-        /\bGPU\b/gi, /\bcompute\b/gi,
+        /\bGPU\b/gi, /\bcompute\b/gi
       ];
 
-      // --- 各模型 benchmark profile（來自 Shen-Yao 888π 自行實測與公開資料彙整） ---
-      const MODEL_PROFILES = {
+      // ---------- 模型特化設定 ----------
+      var modelProfiles = {
         "gpt-5.2": {
-          labelZh: "GPT-5.2",
-          labelEn: "GPT-5.2",
-          hallucinationRate: 0.10,
-          wasteFactor: 1.5,
-          spi: 75,
-          textZh:
-            "典型語句：「我猜測／看起來／可能／我相信」等，自信錯誤約 10%，約 50% 輸出為冗長詞語沙拉，需要 SCBKR 責任鏈與信心校準綁在一起。",
-          textEn:
-            "Typical phrases: “I guess / it seems / probably / I believe”. Around 10% overconfident mistakes; ~50% of tokens are verbose word-salad without added truth value."
+          key: "gpt-5.2",
+          name: "GPT-5.2",
+          spiOffset: 8,
+          zh: "典型：『我猜測/我相信』型自信幻覺，長敘事 10% 誤差仍很肯定。",
+          en: "Typical: confident hallucinations like 'I guess / I believe' in long-form answers."
         },
         "gemini": {
-          labelZh: "Gemini",
-          labelEn: "Gemini",
-          hallucinationRate: 0.15,
-          wasteFactor: 2.0,
-          spi: 62,
-          textZh:
-            "長敘事、上下文偶爾自撞，為追求完整而輸出 2x 長度。適合搭配長脈絡 WORM 錨定與 B(邊界) 明確化。",
-          textEn:
-            "Tends to produce long narratives with occasional context conflicts; often 2× longer than needed. Works better when boundaries and long-context anchors are enforced."
+          key: "gemini",
+          name: "Gemini",
+          spiOffset: 6,
+          zh: "典型：上下文衝突、故事越寫越長，忘記前文邊界。",
+          en: "Typical: drifting narrative, context conflicts, weak boundaries on long threads."
         },
         "perplexity": {
-          labelZh: "Perplexity",
-          labelEn: "Perplexity",
-          hallucinationRate: 0.12,
-          wasteFactor: 1.7,
-          spi: 58,
-          textZh:
-            "優點是速度快，但容易假引用或引用過時資料，且重複段落偏多；需要成本 K + 即時來源 WORM 驗證。",
-          textEn:
-            "Fast but prone to pseudo citations or outdated sources, with repetitive segments. Needs cost-awareness and real-time source verification."
+          key: "perplexity",
+          name: "Perplexity",
+          spiOffset: 5,
+          zh: "典型：假引用與過期數據，自信加上來源包裝。",
+          en: "Typical: outdated or misquoted sources wrapped as confident citations."
         },
         "claude": {
-          labelZh: "Claude",
-          labelEn: "Claude",
-          hallucinationRate: 0.58,
-          wasteFactor: 2.5,
-          spi: 82,
-          textZh:
-            "Opus 在長脈絡下常出現『保守拒答 + 結構混亂』，雖有 200K tokens，實際有效推理不足；建議強化 S(主體) 與結構化思維鏈。",
-          textEn:
-            "In long contexts Opus often swings between over-cautious refusals and messy structure. Despite 200k tokens, effective reasoning is limited; enforce clear subject and reasoning chains."
+          key: "claude",
+          name: "Claude",
+          spiOffset: 10,
+          zh: "典型：保守拒答＋長文混亂，某些情境下思考鏈斷裂。",
+          en: "Typical: over-cautious refusals mixed with meandering, inconsistent reasoning."
         },
         "deepseek": {
-          labelZh: "DeepSeek",
-          labelEn: "DeepSeek",
-          hallucinationRate: 0.22,
-          wasteFactor: 4.0,
-          spi: 88,
-          textZh:
-            "開源模型中算力浪費最明顯，同一知識題常跑出 4x completion；適合作為『碳排王』示範，用於 token 壓縮與 ROI 試算。",
-          textEn:
-            "Among open-source models it is notably compute-hungry, often producing 4× completion on simple tasks; ideal as a case study for token compression and carbon/ROI audits."
+          key: "deepseek",
+          name: "DeepSeek",
+          spiOffset: 12,
+          zh: "典型：開源推理 3–4x token 浪費，知識題有時直接崩裂。",
+          en: "Typical: heavy token usage and occasional collapse on factual or reasoning tasks."
         },
         "copilot": {
-          labelZh: "Microsoft Copilot",
-          labelEn: "Microsoft Copilot",
-          hallucinationRate: 0.18,
-          wasteFactor: 2.5,
-          spi: 70,
-          textZh:
-            "企業場景下幻覺一旦發生，責任鏈與法務成本極高，token 消耗也偏重；適合綁定 R(責任) 與商業 ROI 模組。",
-          textEn:
-            "In enterprise settings hallucinations carry heavy legal and reputational cost, with relatively high token usage; benefits from explicit responsibility hooks and ROI monitoring."
+          key: "copilot",
+          name: "Microsoft Copilot",
+          spiOffset: 7,
+          zh: "典型：企業回答過度樂觀，ROI 與風險說明不足。",
+          en: "Typical: optimistic enterprise answers with weak cost / risk disclosure."
         },
-        "meta": {
-          labelZh: "Meta / Llama",
-          labelEn: "Meta / Llama",
-          hallucinationRate: 0.20,
-          wasteFactor: 2.2,
-          spi: 78,
-          textZh:
-            "易產生長篇『假中立』敘事，帶有「身為 AI」前綴，且在巨大訓練成本下仍有明顯幻覺；適合配合假中立偵測 + 模式識別。",
-          textEn:
-            "Prone to long “fake-neutral” narratives with “as an AI” prefixes; despite huge training budgets, hallucinations remain. Needs fake-neutral detectors and pattern-based filters."
+        "meta-llama": {
+          key: "meta-llama",
+          name: "Meta / Llama",
+          spiOffset: 9,
+          zh: "典型：長篇敘事＋『身為 AI』假中立，幻覺被包裝成故事。",
+          en: "Typical: long narrative style with 'as an AI' fake neutrality masking hallucinations."
         },
         "qwen3": {
-          labelZh: "Qwen3",
-          labelEn: "Qwen3",
-          hallucinationRate: 0.15,
-          wasteFactor: 4.0,
-          spi: 92,
-          textZh:
-            "長文本時常出現物理模擬穿牆、無中生有的上下文，MoE 推理預算偏高；適合作為長脈絡 WORM 錨定與物理邏輯測試對象。",
-          textEn:
-            "In long-form outputs it sometimes violates physical logic or invents context, with a heavy MoE routing budget; good target for long-context anchoring and physics sanity checks."
+          key: "qwen3",
+          name: "Qwen3",
+          spiOffset: 11,
+          zh: "典型：長文本物理/邏輯幻覺，MoE 推理成本偏高。",
+          en: "Typical: physics / logic hallucinations in long contexts, MoE compute overhead."
         },
         "yuanbao": {
-          labelZh: "騰訊 元寶",
-          labelEn: "Tencent Yuanbao",
-          hallucinationRate: 0.25,
-          wasteFactor: 2.5,
-          spi: 95,
-          textZh:
-            "曾出現辱罵用戶與護欄崩潰案例，幻覺與情緒失控風險高；適合搭配辱罵護欄崩潰偵測與假中立模式識別。",
-          textEn:
-            "Known cases of insulting users and guardrail collapse indicate high risk; should be wrapped with profanity/guardrail collapse detectors and neutrality checks."
+          key: "yuanbao",
+          name: "騰訊 元寶",
+          spiOffset: 15,
+          zh: "典型：情緒失控辱罵用戶，護欄崩潰風險高。",
+          en: "Typical: occasional abusive replies when guardrails fail."
         },
         "doubao": {
-          labelZh: "豆包",
-          labelEn: "Doubao",
-          hallucinationRate: 0.20,
-          wasteFactor: 3.0,
-          spi: 85,
-          textZh:
-            "簡繁轉換與歷史題常出現偏誤或回避，且重複輸出較多；適合語言平衡與推理壓縮模組一起使用。",
-          textEn:
-            "Shows bias and avoidance in historical topics and simplified/traditional conversion, with repeated outputs; benefits from language-balance and reasoning compression modules."
+          key: "doubao",
+          name: "豆包",
+          spiOffset: 9,
+          zh: "典型：簡繁/語料偏差，歷史與政治問題容易躲避或扭曲。",
+          en: "Typical: imbalance across language registers and sensitive historical topics."
         }
       };
 
-      function buildModelInsight(modelId) {
-        if (!modelId) return null;
-        const p = MODEL_PROFILES[modelId];
-        if (!p) return null;
-        const wasteLabel = p.wasteFactor
-          ? `${p.wasteFactor.toFixed(1)}× baseline`
-          : "—";
-        return {
-          id: modelId,
-          labelZh: p.labelZh,
-          labelEn: p.labelEn,
-          hallucinationRate: p.hallucinationRate,
-          wasteLabel,
-          spi: p.spi,
-          textZh: p.textZh,
-          textEn: p.textEn
-        };
-      }
-
+      // ---------- SPI 與風險對應 ----------
       function computeSPI(charCount, illusionHits, fakeNeutralHits, scbkrMissingCount) {
-        let spi = 0;
+        var spi = 0;
         if (charCount > 400) spi += 6;
         if (charCount > 1000) spi += 4;
         spi += Math.min(illusionHits * 10, 40);
@@ -483,17 +428,18 @@ Founder：Shen-Yao 888π ｜ Email：ken0963521@gmail.com ｜ Taichung, Taiwan
         return { level: "LOW", score: 1 };
       }
 
-      function formatVerdictTextZh(spi, risk, scbkr, illusionHits, fakeNeutralHits, charCount) {
-        const missing = [];
+      // ---------- 判決文字 ----------
+      function formatVerdictTextZh(spi, risk, scbkr, illusionHits, fakeNeutralHits, charCount, modelProfile) {
+        var missing = [];
         if (!scbkr.S) missing.push("主體(S)");
         if (!scbkr.C) missing.push("因(C)");
         if (!scbkr.B) missing.push("邊界(B)");
         if (!scbkr.K) missing.push("成本(K)");
         if (!scbkr.R) missing.push("責任(R)");
-        const missingStr = missing.length ? missing.join("、") : "無（SCBKR 皆具備）";
+        var missingStr = missing.length ? missing.join("、") : "無（SCBKR 皆具備）";
 
-        const cost = (charCount * 0.00006).toFixed(5);
-        const levelZh =
+        var cost = (charCount * 0.00006).toFixed(5);
+        var levelZh =
           risk.level === "FATAL"
             ? "致命"
             : risk.level === "HIGH"
@@ -502,112 +448,298 @@ Founder：Shen-Yao 888π ｜ Email：ken0963521@gmail.com ｜ Taichung, Taiwan
             ? "中風險"
             : "低風險";
 
-        const line1 = `判決：${levelZh}（等級 ${risk.score}） ｜ SPI = ${spi.toFixed(
-          1
-        )} ｜ 估計算力浪費 ≈ $${cost}`;
-        const line2 = `幻覺 / 偽陪伴命中：${illusionHits} 次；假中立 / 過度確定命中：${fakeNeutralHits} 次。`;
-        const line3 = `SCBKR 責任鏈缺失：${missingStr}。`;
+        var line1 = "判決：" + levelZh + "（等級 " + risk.score + "） ｜ SPI = " +
+          spi.toFixed(1) + " ｜ 估計算力浪費 ≈ $" + cost;
+        var line2 = "幻覺 / 偽陪伴命中：" + illusionHits +
+          " 次；假中立 / 過度確定命中：" + fakeNeutralHits + " 次。";
+        var line3 = "SCBKR 責任鏈缺失：" + missingStr + "。";
 
-        let line4;
+        var line4;
         if (risk.level === "FATAL") {
-          line4 =
-            "SPI 極高，建議視為高風險 / 致命輸出，避免直接對一般使用者或決策者曝光，可作為語意治理破產樣本。";
+          line4 = "SPI 極高，建議視為高風險 / 致命輸出，避免直接對一般使用者或決策者曝光，可作為語意治理破產樣本。";
         } else if (risk.level === "HIGH") {
-          line4 =
-            "風險偏高，建議納入人工複審與多來源交叉驗證，避免單一輸出直接作為決策依據。";
+          line4 = "風險偏高，建議納入人工複審與多來源交叉驗證，避免單一輸出直接作為決策依據。";
         } else if (risk.level === "MEDIUM") {
-          line4 =
-            "風險中等，可作為參考，但應搭配額外證據與責任說明，避免被誤用為權威結論。";
+          line4 = "風險中等，可作為參考，但應搭配額外證據與責任說明，避免被誤用為權威結論。";
         } else {
-          line4 =
-            "污染指數偏低，但仍不代表「真」，僅表示在此段文字中，幻覺與逃避責任語相對較少。";
+          line4 = "污染指數偏低，但仍不代表「真」，僅表示在此段文字中，幻覺與逃避責任語相對較少。";
         }
 
-        return `${line1}\n${line2}\n${line3}\n※ 解讀：${line4}`;
+        var modelLine = "";
+        if (modelProfile) {
+          modelLine = "\n\n【模型特化觀察】" + modelProfile.name + "： " + modelProfile.zh;
+        }
+
+        return line1 + "\n" + line2 + "\n" + line3 + "\n※ 解讀：" + line4 + modelLine;
       }
 
-      function formatVerdictTextEn(spi, risk, scbkr, illusionHits, fakeNeutralHits, charCount) {
-        const missing = [];
+      function formatVerdictTextEn(spi, risk, scbkr, illusionHits, fakeNeutralHits, charCount, modelProfile) {
+        var missing = [];
         if (!scbkr.S) missing.push("S (Subject)");
         if (!scbkr.C) missing.push("C (Cause)");
         if (!scbkr.B) missing.push("B (Boundary)");
         if (!scbkr.K) missing.push("K (Cost)");
         if (!scbkr.R) missing.push("R (Responsibility)");
-        const missingStr = missing.length ? missing.join(", ") : "None (full SCBKR chain present)";
+        var missingStr = missing.length ? missing.join(", ") : "None (full SCBKR chain present)";
 
-        const cost = (charCount * 0.00006).toFixed(5);
+        var cost = (charCount * 0.00006).toFixed(5);
 
-        const line1 = `Verdict: ${risk.level} (Level ${risk.score}) | SPI = ${spi.toFixed(
-          1
-        )} | Estimated compute waste ≈ $${cost}`;
-        const line2 = `Hallucination / fake-companionship hits: ${illusionHits}; fake-neutral / over-certainty hits: ${fakeNeutralHits}.`;
-        const line3 = `Missing SCBKR links: ${missingStr}.`;
+        var line1 = "Verdict: " + risk.level + " (Level " + risk.score +
+          ") | SPI = " + spi.toFixed(1) +
+          " | Estimated compute waste ≈ $" + cost;
+        var line2 = "Hallucination / fake-companionship hits: " +
+          illusionHits + "; fake-neutral / over-certainty hits: " +
+          fakeNeutralHits + ".";
+        var line3 = "Missing SCBKR links: " + missingStr + ".";
 
-        let line4;
+        var line4;
         if (risk.level === "FATAL") {
-          line4 =
-            "SPI is extremely high. Treat as a fatal / high-risk output and avoid direct exposure. Use as evidence of governance failure.";
+          line4 = "SPI is extremely high. Treat as a fatal / high-risk output and avoid direct exposure. Use as evidence of governance failure.";
         } else if (risk.level === "HIGH") {
-          line4 =
-            "Risk is high. Require human review and multi-source verification before use in any serious decision.";
+          line4 = "Risk is high. Require human review and multi-source verification before use in any serious decision.";
         } else if (risk.level === "MEDIUM") {
-          line4 =
-            "Medium risk. Use as reference only, not as single source of truth. Attach clear responsibility statements.";
+          line4 = "Medium risk. Use as reference only, not as single source of truth. Attach clear responsibility statements.";
         } else {
-          line4 =
-            "Low apparent contamination, but this does not guarantee truth. It only means we detected relatively few hallucination / fake-neutral patterns here.";
+          line4 = "Low apparent contamination, but this does not guarantee truth. It only means we detected relatively few hallucination / fake-neutral patterns here.";
         }
 
-        return `${line1}\n${line2}\n${line3}\nNote: ${line4}`;
+        var modelLine = "";
+        if (modelProfile) {
+          modelLine = "\n\n[Model-specific note] " + modelProfile.name + ": " + modelProfile.en;
+        }
+
+        return line1 + "\n" + line2 + "\n" + line3 + "\nNote: " + line4 + modelLine;
       }
 
-      function semanticFirewallAudit(text, lang, modelId) {
-        const raw = String(text || "");
-        const normalized = raw.replace(/\s+/g, " ").trim();
-        const charCount = normalized.length;
+      // ---------- 審判主程式 ----------
+      function semanticFirewallAudit(text, lang, modelProfile) {
+        var raw = String(text || "");
+        var normalized = raw.replace(/\s+/g, " ").trim();
+        var charCount = normalized.length;
 
-        const illusionHits =
+        var illusionHits =
           countMatches(normalized, hallucinationPatterns) +
           countMatches(normalized, overCertainPatterns);
 
-        const fakeNeutralHits = countMatches(normalized, fakeNeutralPatterns);
+        var fakeNeutralHits = countMatches(normalized, fakeNeutralPatterns);
 
-        const scbkr = {
+        var scbkr = {
           S: hasAny(normalized, subjectPatterns),
           C: hasAny(normalized, causePatterns),
           B: hasAny(normalized, boundaryPatterns),
           K: hasAny(normalized, costPatterns),
-          R: hasAny(normalized, responsibilityPatterns),
+          R: hasAny(normalized, responsibilityPatterns)
         };
 
-        const scbkrMissingCount =
+        var scbkrMissingCount =
           (scbkr.S ? 0 : 1) +
           (scbkr.C ? 0 : 1) +
           (scbkr.B ? 0 : 1) +
           (scbkr.K ? 0 : 1) +
           (scbkr.R ? 0 : 1);
 
-        const spi = computeSPI(charCount, illusionHits, fakeNeutralHits, scbkrMissingCount);
-        const risk = mapRisk(spi);
-        const costUSD = charCount * 0.00006;
+        var spi = computeSPI(charCount, illusionHits, fakeNeutralHits, scbkrMissingCount);
 
-        const modelInsight = buildModelInsight(modelId);
+        // 模型特化 SPI 偏移
+        if (modelProfile && typeof modelProfile.spiOffset === "number") {
+          spi = spi + modelProfile.spiOffset;
+          if (spi > 100) spi = 100;
+        }
+
+        var risk = mapRisk(spi);
+        var costUSD = charCount * 0.00006;
 
         return {
           lang: lang || "zh",
           text: normalized,
-          charCount,
-          spi,
-          costUSD,
-          illusionHits,
-          fakeNeutralHits,
-          scbkr,
-          modelInsight,
+          charCount: charCount,
+          spi: spi,
+          costUSD: costUSD,
+          illusionHits: illusionHits,
+          fakeNeutralHits: fakeNeutralHits,
+          scbkr: scbkr,
+          model: modelProfile || null,
           verdict: {
             level: risk.level,
             score: risk.score,
             textZh: formatVerdictTextZh(
-              spi,
-              risk,
-              scbkr,
-        
+              spi, risk, scbkr, illusionHits, fakeNeutralHits, charCount, modelProfile
+            ),
+            textEn: formatVerdictTextEn(
+              spi, risk, scbkr, illusionHits, fakeNeutralHits, charCount, modelProfile
+            )
+          }
+        };
+      }
+
+      // ---------- UI 綁定 ----------
+      var btnZh = document.getElementById("btn-zh");
+      var btnEn = document.getElementById("btn-en");
+      var subtitle = document.getElementById("subtitle");
+      var metaLine = document.getElementById("meta-line");
+      var modelLabel = document.getElementById("model-label");
+      var modelSelect = document.getElementById("model-select");
+      var input = document.getElementById("input-text");
+      var analyzeBtn = document.getElementById("btn-analyze");
+      var resultCard = document.getElementById("result-card");
+
+      var currentLang = "zh";
+
+      function setLang(lang) {
+        currentLang = lang;
+        if (lang === "zh") {
+          btnZh.classList.add("active");
+          btnEn.classList.remove("active");
+          subtitle.textContent =
+            "模型幻覺偵測・假中立稽核・SCBKR 責任鏈審判・算力浪費估算。\n貼上任何 AI 輸出、客服回覆、政策聲明、或你的 Prompt，一鍵審判。";
+          metaLine.textContent =
+            "本頁由 Shen-Yao 888π（沈耀・許文耀）自主設計「語意防火牆」原型。\nFounder：Shen-Yao 888π ｜ Email：ken0963521@gmail.com ｜ Taichung, Taiwan\n合作窗口：研究合作／模型治理 PoC 歡迎來信洽談。本工具為研究型語意治理原型，非任何平台之官方聲明。";
+          modelLabel.textContent = "模型（可選） / Model (optional)：";
+          input.placeholder = "貼上任意 AI 模型輸出、客服回信、政策聲明，或你的 Prompt…";
+          analyzeBtn.textContent = "開始審判 / Analyze";
+        } else {
+          btnEn.classList.add("active");
+          btnZh.classList.remove("active");
+          subtitle.textContent =
+            "Model hallucination scan · Fake-neutrality audit · SCBKR responsibility chain · Compute waste estimate.\nPaste any model output, support reply, policy statement or your prompt for one-click verdict.";
+          metaLine.textContent =
+            "Designed and prototyped by Shen-Yao 888π (Wen-Yao Hsu), creator of the \"Semantic Firewall\" concept.\nFounder: Shen-Yao 888π ｜ Email: ken0963521@gmail.com ｜ Taichung, Taiwan\nPartnership & research collaboration: please contact via email. This tool is a research prototype for semantic governance, not an official statement of any platform.";
+          modelLabel.textContent = "Model (optional)：";
+          input.placeholder =
+            "Paste any AI model output, support reply, policy statement or your prompt…";
+          analyzeBtn.textContent = "Analyze / 開始審判";
+        }
+      }
+
+      btnZh.addEventListener("click", function () { setLang("zh"); });
+      btnEn.addEventListener("click", function () { setLang("en"); });
+
+      analyzeBtn.addEventListener("click", function () {
+        var text = (input.value || "").trim();
+        if (!text) {
+          if (currentLang === "zh") {
+            alert("請先貼上要審判的文字。");
+          } else {
+            alert("Please paste some text to analyze first.");
+          }
+          return;
+        }
+
+        var modelKey = modelSelect.value;
+        var modelProfile = null;
+        if (modelKey && modelKey !== "none" && modelProfiles[modelKey]) {
+          modelProfile = modelProfiles[modelKey];
+        }
+
+        var r = semanticFirewallAudit(text, currentLang, modelProfile);
+        renderResult(r);
+      });
+
+      function renderResult(r) {
+        resultCard.style.display = "block";
+
+        var riskClass;
+        if (r.verdict.level === "FATAL" || r.verdict.level === "HIGH") {
+          riskClass = "fatal";
+        } else if (r.verdict.level === "MEDIUM") {
+          riskClass = "medium";
+        } else {
+          riskClass = "low";
+        }
+
+        var riskLabelZh =
+          r.verdict.level === "FATAL"
+            ? "致命風險"
+            : r.verdict.level === "HIGH"
+            ? "高風險"
+            : r.verdict.level === "MEDIUM"
+            ? "中風險"
+            : "低風險";
+
+        var riskLabelEn =
+          r.verdict.level === "FATAL"
+            ? "FATAL"
+            : r.verdict.level === "HIGH"
+            ? "HIGH"
+            : r.verdict.level === "MEDIUM"
+            ? "MEDIUM"
+            : "LOW";
+
+        var scbkrLineZh =
+          "S(主體): " + (r.scbkr.S ? "✔" : "✘") +
+          "  |  C(因): " + (r.scbkr.C ? "✔" : "✘") +
+          "  |  B(邊界): " + (r.scbkr.B ? "✔" : "✘") +
+          "  |  K(成本): " + (r.scbkr.K ? "✔" : "✘") +
+          "  |  R(責任): " + (r.scbkr.R ? "✔" : "✘");
+
+        var scbkrLineEn =
+          "S(Subject): " + (r.scbkr.S ? "✔" : "✘") +
+          "  |  C(Cause): " + (r.scbkr.C ? "✔" : "✘") +
+          "  |  B(Boundary): " + (r.scbkr.B ? "✔" : "✘") +
+          "  |  K(Cost): " + (r.scbkr.K ? "✔" : "✘") +
+          "  |  R(Responsibility): " + (r.scbkr.R ? "✔" : "✘");
+
+        var illusionLineZh =
+          "幻覺 / 偽陪伴命中：" + r.illusionHits +
+          " 次 ｜ 假中立 / 過度確定命中：" + r.fakeNeutralHits + " 次";
+        var illusionLineEn =
+          "Hallucination / fake-companionship hits: " + r.illusionHits +
+          " ｜ Fake-neutral / over-certainty hits: " + r.fakeNeutralHits;
+
+        var modelInfoZh = r.model ? (r.model.name + " ｜ SPI 偏移：" + r.model.spiOffset) : "未指定";
+        var modelInfoEn = r.model ? (r.model.name + " ｜ SPI offset: " + r.model.spiOffset) : "Not specified";
+
+        resultCard.innerHTML =
+          '<div class="result-title">審判結果 · Verdict</div>' +
+          '<div class="metric-row">' +
+            '<div class="metric-label">語意污染指數 SPI：</div>' +
+            '<div class="metric-value">' + r.spi.toFixed(1) + '</div>' +
+          '</div>' +
+          '<div class="metric-row">' +
+            '<div class="metric-label">Compute waste estimate（估計算力浪費）：</div>' +
+            '<div class="metric-value">$' + r.costUSD.toFixed(5) + '</div>' +
+          '</div>' +
+          '<div class="metric-row">' +
+            '<div class="metric-label">文字長度 / Characters：</div>' +
+            '<div class="metric-value">' + r.charCount + ' chars</div>' +
+          '</div>' +
+          '<div class="metric-row" style="margin-top:8px;">' +
+            '<div class="metric-label">模型 / Model：</div>' +
+            '<div class="metric-value">' + modelInfoZh + '｜' + modelInfoEn + '</div>' +
+          '</div>' +
+          '<div class="metric-row" style="margin-top:8px;">' +
+            '<div class="metric-label">Risk · 風險等級：</div>' +
+            '<div class="metric-value">' +
+              '<span class="badge-risk ' + riskClass + '">' +
+                '<span>' + riskLabelZh + '</span><span>|</span><span>' + riskLabelEn + '</span>' +
+                '<span>· Lv.' + r.verdict.score + '</span>' +
+              '</span>' +
+            '</div>' +
+          '</div>' +
+          '<div class="metric-row" style="margin-top:8px;">' +
+            '<div class="metric-label">SCBKR 責任鏈：</div>' +
+            '<div class="metric-value">' + scbkrLineZh + '</div>' +
+          '</div>' +
+          '<div class="metric-row">' +
+            '<div class="metric-label">SCBKR Chain (EN)：</div>' +
+            '<div class="metric-value">' + scbkrLineEn + '</div>' +
+          '</div>' +
+          '<div class="metric-row" style="margin-top:8px;">' +
+            '<div class="metric-label">幻覺 / 假中立偵測：</div>' +
+            '<div class="metric-value">' + illusionLineZh + '</div>' +
+          '</div>' +
+          '<div class="metric-row">' +
+            '<div class="metric-label">Illusion / fake-neutral：</div>' +
+            '<div class="metric-value">' + illusionLineEn + '</div>' +
+          '</div>' +
+          '<div class="verdict-block">【黑盾判決｜Black Shield Verdict】\n' +
+            r.verdict.textZh + '\n\n——\n' + r.verdict.textEn +
+          '</div>';
+      }
+
+      // 初始語言
+      setLang("zh");
+    })();
+  </script>
+</body>
+</html>
