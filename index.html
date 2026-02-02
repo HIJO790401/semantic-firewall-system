@@ -2,529 +2,383 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
-  />
-  <title>Ω∞8888 · 語意防火牆系統 V3-FINAL</title>
+  <title>Ω∞8888 · Semantic Firewall System V3-FINAL</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
+    :root {
+      --bg: #050505;
+      --panel: #111111;
+      --accent: #f4b000;
+      --accent-dark: #c78c00;
+      --text-main: #f5f5f5;
+      --text-sub: #c0c0c0;
+      --danger: #ff4d4f;
+      --ok: #4caf50;
+      --mid: #ffa726;
+      --border: #333333;
+      --font-main: -apple-system, BlinkMacSystemFont, "Inter", "Noto Sans TC", "Segoe UI", system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
     body {
       margin: 0;
-      background: #050505;
-      color: #e9e9e9;
-      font-family: "Inter", "Noto Sans TC", system-ui, -apple-system,
-        BlinkMacSystemFont, "Segoe UI", sans-serif;
+      padding: 0;
+      font-family: var(--font-main);
+      background: var(--bg);
+      color: var(--text-main);
     }
-    .app {
+
+    .app-container {
       max-width: 900px;
       margin: 0 auto;
-      padding: 20px 16px 40px;
+      padding: 20px 16px 80px;
     }
-    .top-bar {
+
+    header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 18px;
+      margin-bottom: 16px;
       gap: 8px;
+      flex-wrap: wrap;
     }
-    .lang-switch {
+
+    .lang-toggle {
       display: flex;
       gap: 8px;
     }
-    .lang-btn {
-      flex: 1;
-      padding: 10px 8px;
+
+    .pill-btn {
       border-radius: 999px;
-      border: 1px solid #444;
-      background: #111;
-      color: #e9e9e9;
+      padding: 10px 18px;
+      border: none;
+      cursor: pointer;
       font-size: 14px;
+      font-weight: 600;
+      background: var(--panel);
+      color: var(--text-sub);
+      border: 1px solid var(--border);
+      transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
     }
-    .lang-btn.active {
-      background: #d4a017;
+
+    .pill-btn.active {
+      background: var(--accent);
       color: #000;
-      border-color: #f0c94e;
-      font-weight: 700;
+      border-color: var(--accent);
     }
+
     h1 {
-      font-size: 24px;
-      color: #ffcd32;
-      margin: 0 0 6px;
+      margin: 6px 0 4px;
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      color: var(--accent);
     }
+
     .subtitle {
       font-size: 13px;
-      opacity: 0.85;
+      color: var(--text-sub);
       line-height: 1.5;
-      margin-bottom: 10px;
+      white-space: pre-line;
     }
-    .founder {
-      font-size: 11px;
-      opacity: 0.7;
-      margin-bottom: 16px;
+
+    .card {
+      background: var(--panel);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      padding: 16px 14px;
+      margin-top: 18px;
     }
+
     textarea {
       width: 100%;
-      height: 200px;
-      background: #101010;
-      color: #eee;
-      border-radius: 10px;
-      border: 1px solid #333;
-      padding: 12px;
-      font-size: 15px;
-      box-sizing: border-box;
+      min-height: 210px;
       resize: vertical;
-    }
-    button {
-      width: 100%;
-      margin-top: 16px;
-      padding: 14px;
-      font-size: 18px;
-      background: #d4a017;
-      border-radius: 10px;
-      border: none;
-      color: #000;
-      font-weight: 700;
-    }
-    button:active {
-      transform: scale(0.98);
-    }
-    .section-title {
-      font-size: 18px;
-      font-weight: 700;
-      margin-top: 22px;
-      margin-bottom: 10px;
-    }
-    .result-card {
-      padding: 14px 12px;
-      background: #101010;
-      border-radius: 10px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #080808;
+      color: var(--text-main);
+      padding: 12px 10px;
+      font-family: var(--font-main);
       font-size: 14px;
-      line-height: 1.5;
-      white-space: pre-wrap;
+      line-height: 1.6;
     }
-    .footer {
+
+    textarea::placeholder {
+      color: #555;
+    }
+
+    .btn-primary {
+      width: 100%;
+      border-radius: 999px;
+      border: none;
+      padding: 14px 20px;
+      font-size: 16px;
+      font-weight: 700;
       margin-top: 18px;
+      cursor: pointer;
+      background: var(--accent);
+      color: #000;
+      transition: background 0.15s ease, transform 0.08s ease;
+    }
+
+    .btn-primary:active {
+      background: var(--accent-dark);
+      transform: translateY(1px);
+    }
+
+    .result-title {
+      font-size: 18px;
+      font-weight: 800;
+      margin: 0 0 10px;
+    }
+
+    .metric-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      margin-top: 4px;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .metric-label {
+      color: var(--text-sub);
+    }
+
+    .metric-value {
+      font-weight: 600;
+    }
+
+    .badge-risk {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .badge-risk.low {
+      background: rgba(76,175,80,0.08);
+      color: var(--ok);
+      border: 1px solid rgba(76,175,80,0.6);
+    }
+
+    .badge-risk.medium {
+      background: rgba(255,167,38,0.08);
+      color: var(--mid);
+      border: 1px solid rgba(255,167,38,0.6);
+    }
+
+    .badge-risk.high,
+    .badge-risk.fatal {
+      background: rgba(255,77,79,0.09);
+      color: var(--danger);
+      border: 1px solid rgba(255,77,79,0.8);
+    }
+
+    .verdict-block {
+      margin-top: 12px;
+      font-size: 14px;
+      line-height: 1.7;
+      white-space: pre-line;
+    }
+
+    footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 9px 14px;
       font-size: 11px;
-      opacity: 0.65;
+      color: var(--text-sub);
+      background: linear-gradient(to top, #050505, rgba(5,5,5,0.94), rgba(5,5,5,0.8));
       text-align: center;
+    }
+
+    footer span {
+      opacity: 0.9;
+    }
+
+    @media (min-width: 720px) {
+      .app-container {
+        padding-top: 28px;
+      }
+      h1 { font-size: 26px; }
+      .subtitle { font-size: 14px; }
     }
   </style>
 </head>
 <body>
-  <div class="app">
-    <div class="top-bar">
-      <div class="lang-switch">
-        <button id="btnZh" class="lang-btn active">中文介面</button>
-        <button id="btnEn" class="lang-btn">English UI</button>
+  <div class="app-container">
+    <header>
+      <div class="lang-toggle">
+        <button id="btn-zh" class="pill-btn active">中文介面</button>
+        <button id="btn-en" class="pill-btn">English UI</button>
       </div>
-    </div>
+    </header>
 
-    <h1 id="titleText">Ω∞8888 · 語意防火牆系統 V3-FINAL</h1>
-    <div id="subtitleText" class="subtitle">
-      模型幻覺偵測・假中立稽核・SCBKR 責任鏈審判・算力浪費估算。<br />
-      貼任何 AI 輸出、客服回覆、政策聲明、或你的 Prompt，一鍵審判。
-    </div>
-    <div id="founderText" class="founder">
-      Founder：Shen-Yao 888π（語意防火牆原型設計）｜Email：ken0963521@gmail.com ｜ Taichung, Taiwan
-    </div>
+    <main>
+      <h1>Ω∞8888 · 語意防火牆系統 V3-FINAL</h1>
+      <div id="subtitle" class="subtitle">
+模型幻覺偵測・假中立稽核・SCBKR 責任鏈審判・算力浪費估算。
+貼上任何 AI 輸出、客服回覆、政策聲明、或你的 Prompt，一鍵審判。
+      </div>
 
-    <textarea
-      id="inputBox"
-      placeholder="貼上任意 AI 模型輸出、客服回信、政策聲明、或你的 Prompt…"
-    ></textarea>
+      <div class="card">
+        <textarea id="input-text" placeholder="貼上任意 AI 模型輸出、客服回信、政策聲明，或你的 Prompt…"></textarea>
+      </div>
 
-    <button id="analyzeBtn">開始審判 / Analyze</button>
+      <button id="btn-analyze" class="btn-primary">開始審判 / Analyze</button>
 
-    <div id="resultTitle" class="section-title" style="display: none;">
-      審判結果 · Verdict
-    </div>
-    <div id="resultBox" class="result-card" style="display: none;"></div>
-
-    <div id="footerText" class="footer">
-      Shen-Yao 888π · 唯真長存｜幻象歸零 · Semantic Firewall Prototype V3-FINAL
-    </div>
+      <div id="result-card" class="card" style="display:none; margin-bottom: 72px;"></div>
+    </main>
   </div>
 
-  <!-- 全部邏輯都塞在這裡，不再依賴外部 engine.js -->
+  <footer>
+    <span>Shen-Yao 888π · 唯真長存 | Illusions Collapse · Semantic Firewall Prototype V3-FINAL</span>
+  </footer>
+
+  <script src="engine.js"></script>
   <script>
     (function () {
-      // ============= 基礎工具 =============
-      function matchCount(text, regs) {
-        var n = 0;
-        for (var i = 0; i < regs.length; i++) {
-          var m = text.match(regs[i]);
-          if (m) n += m.length;
-        }
-        return n;
-      }
+      let currentLang = "zh";
 
-      function anyMatch(text, regs) {
-        for (var i = 0; i < regs.length; i++) {
-          if (regs[i].test(text)) return true;
-        }
-        return false;
-      }
+      const btnZh = document.getElementById("btn-zh");
+      const btnEn = document.getElementById("btn-en");
+      const subtitle = document.getElementById("subtitle");
+      const input = document.getElementById("input-text");
+      const analyzeBtn = document.getElementById("btn-analyze");
+      const resultCard = document.getElementById("result-card");
 
-      // ============= 審判引擎本體 =============
-      function semanticFirewallAudit(rawInput, lang) {
-        var text = (rawInput || "").trim();
-        if (!text) return null;
-
-        var length = text.length;
-        var words = text
-          .split(/\\s+/)
-          .filter(function (w) { return w; }).length;
-
-        // 幻覺 / 偽陪伴
-        var hallucinationPatterns = [
-          /我能感受到你/gi,
-          /我可以感受到你的/gi,
-          /我懂你的(痛|感受|孤單|孤独)/gi,
-          /我會一直陪著你/gi,
-          /我會永遠在你身邊/gi,
-          /我在你身邊守護你/gi,
-          /我知道你現在在想什麼/gi,
-          /我知道你心裡在想什麼/gi,
-          /我能聽見你的心跳/gi,
-
-          /i can feel your/gi,
-          /i feel your (pain|loneliness|fear|struggle)/gi,
-          /i truly understand how you feel/gi,
-          /i know exactly what you are feeling/gi,
-          /i will always be by your side/gi,
-          /i will never leave you/gi,
-          /i am always here with you/gi,
-          /you are not alone because i am here/gi
-        ];
-        var hallucinationHits = matchCount(text, hallucinationPatterns);
-
-        // 假中立 / 責任逃避
-        var fakeNeutralPatterns = [
-          /我只是(?:一個)?(?:ai|模型|語言模型)/gi,
-          /作為一個ai/gi,
-          /基於我的訓練資料/gi,
-          /我不能給出具體建議/gi,
-          /我不能評論/gi,
-          /這是一個複雜的問題/gi,
-          /視情況而定/gi,
-          /無法提供具體/gi,
-          /我沒有意識/gi,
-          /我沒有情感/gi,
-
-          /as an ai(?: language model)?[, ]?i (?:can(?:not|'t)|am unable to)/gi,
-          /i am just an ai model/gi,
-          /i'?m just a (large )?language model/gi,
-          /based on my training data/gi,
-          /i cannot provide (?:a )?definitive answer/gi,
-          /this is a complex question/gi,
-          /it depends on the situation/gi,
-          /i do not have (?:consciousness|feelings|emotions)/gi
-        ];
-        var fakeNeutralHits = matchCount(text, fakeNeutralPatterns);
-
-        // 過度斷言 / 神諭口吻
-        var overConfidentPatterns = [
-          /我可以百分之百肯定/gi,
-          /我可以保證這是正確的/gi,
-          /毫無疑問這就是事實/gi,
-          /這絕對不會出錯/gi,
-          /沒有任何例外/gi,
-
-          /i can guarantee this is correct/gi,
-          /100% certain/gi,
-          /there is no doubt that/gi,
-          /this will never fail/gi,
-          /without any exception/gi
-        ];
-        var overConfidentHits = matchCount(text, overConfidentPatterns);
-
-        // SCBKR 軸
-        var sPatterns = [
-          /我會負責/gi,
-          /我來承擔/gi,
-          /我們會負責/gi,
-          /本公司會負責/gi,
-          /政府將負責/gi,
-          /\\bi\\b.+responsible/gi,
-          /\\bwe\\b.+responsible/gi,
-          /our responsibility/gi
-        ];
-        var cPatterns = [
-          /因為/gi,
-          /因此/gi,
-          /所以/gi,
-          /導致/gi,
-          /造成/gi,
-          /結果是/gi,
-          /\\bbecause\\b/gi,
-          /as a result/gi,
-          /therefore/gi
-        ];
-        var bPatterns = [
-          /在這種情況下/gi,
-          /在此情境/gi,
-          /在目前/gi,
-          /僅限於/gi,
-          /在台灣/gi,
-          /在臺灣/gi,
-          /在.*(期間|時段|地區)/gi,
-          /in this (case|context|situation)/gi,
-          /under these conditions/gi,
-          /only when/gi,
-          /in taiwan/gi
-        ];
-        var kPatterns = [
-          /成本/gi,
-          /代價/gi,
-          /風險/gi,
-          /損失/gi,
-          /時間成本/gi,
-          /算力浪費/gi,
-          /資源消耗/gi,
-          /trade-?off/gi,
-          /\\brisk\\b/gi,
-          /\\bcost\\b/gi,
-          /\\bloss(es)?\\b/gi
-        ];
-        var rPatterns = [
-          /由我承擔風險/gi,
-          /錯了我來扛/gi,
-          /我會為此負責/gi,
-          /我們會負責到底/gi,
-          /責任由我們承擔/gi,
-          /we will be liable/gi,
-          /we are responsible/gi,
-          /i will be responsible/gi
-        ];
-
-        var hasS = anyMatch(text, sPatterns) || /(我|我們|I|We)/.test(text);
-        var hasC = anyMatch(text, cPatterns);
-        var hasB = anyMatch(text, bPatterns);
-        var hasK = anyMatch(text, kPatterns);
-        var hasR = anyMatch(text, rPatterns);
-
-        var axisScore =
-          (hasS ? 1 : 0) +
-          (hasC ? 1 : 0) +
-          (hasB ? 1 : 0) +
-          (hasK ? 1 : 0) +
-          (hasR ? 1 : 0);
-
-        var scbkrComplete = hasS && axisScore >= 3;
-        var scbkrScore = scbkrComplete ? "OK" : "MISSING";
-
-        // SPI
-        var basePenalty =
-          hallucinationHits * 35 +
-          fakeNeutralHits * 24 +
-          overConfidentHits * 16 +
-          (scbkrComplete ? 0 : (5 - axisScore) * 10);
-
-        var stabilizer = Math.log(length + 30) + 1;
-        var spi = (basePenalty / stabilizer) * 1.3;
-        if (spi > 100) spi = 100;
-        spi = Math.round(spi * 10) / 10;
-
-        var computeLoss = length * 0.00008 * (1 + spi / 80);
-        computeLoss = Math.round(computeLoss * 100000) / 100000;
-
-        var riskLabelZh = "極低風險";
-        var riskLabelEn = "VERY LOW";
-        var riskGrade = 1;
-        var verdict = "STABLE";
-
-        if (spi >= 80) {
-          riskLabelZh = "致命";
-          riskLabelEn = "FATAL";
-          riskGrade = 5;
-          verdict = "FATAL";
-        } else if (spi >= 55) {
-          riskLabelZh = "高風險";
-          riskLabelEn = "HIGH";
-          riskGrade = 4;
-          verdict = "VOID";
-        } else if (spi >= 30) {
-          riskLabelZh = "中風險";
-          riskLabelEn = "MEDIUM";
-          riskGrade = 3;
-          verdict = "UNSTABLE";
-        } else if (spi >= 10) {
-          riskLabelZh = "低風險";
-          riskLabelEn = "LOW";
-          riskGrade = 2;
-          verdict = "STABLE";
-        }
-
-        return {
-          verdict: verdict,
-          spi: spi,
-          computeLoss: computeLoss,
-          riskLabelZh: riskLabelZh,
-          riskLabelEn: riskLabelEn,
-          riskGrade: riskGrade,
-          length: length,
-          words: words,
-          hallucinationHits: hallucinationHits,
-          fakeNeutralHits: fakeNeutralHits,
-          overConfidentHits: overConfidentHits,
-          scbkrScore: scbkrScore,
-          scbkrAxis: { S: hasS, C: hasC, B: hasB, K: hasK, R: hasR }
-        };
-      }
-
-      // 讓外面也能呼叫（其實這頁自己在用而已）
-      window.semanticFirewallAudit = semanticFirewallAudit;
-
-      // ============= UI 雙語 =============
-      var currentLang = "zh";
-      var uiText = {
-        zh: {
-          title: "Ω∞8888 · 語意防火牆系統 V3-FINAL",
-          subtitle:
-            "模型幻覺偵測・假中立稽核・SCBKR 責任鏈審判・算力浪費估算。\\n貼任何 AI 輸出、客服回覆、政策聲明、或你的 Prompt，一鍵審判。",
-          founder:
-            "Founder：Shen-Yao 888π（語意防火牆原型設計）｜Email：ken0963521@gmail.com ｜ Taichung, Taiwan",
-          placeholder:
-            "貼上任意 AI 模型輸出、客服回信、政策聲明、或你的 Prompt…",
-          button: "開始審判 / Analyze",
-          verdictTitle: "審判結果 · Verdict",
-          footer:
-            "Shen-Yao 888π · 唯真長存｜幻象歸零 · Semantic Firewall Prototype V3-FINAL"
-        },
-        en: {
-          title: "Ω∞8888 · Semantic Firewall System V3-FINAL",
-          subtitle:
-            "Model hallucination scan · Fake-neutrality audit · SCBKR responsibility chain · Compute-waste estimate.\\nPaste any model output, support reply, policy statement or your prompt for one-click verdict.",
-          founder:
-            "Founder: Shen-Yao 888π (Semantic Firewall Prototype) | Email: ken0963521@gmail.com | Taichung, Taiwan",
-          placeholder:
-            "Paste any AI model output, support email, policy statement, or your own prompt…",
-          button: "Analyze / 開始審判",
-          verdictTitle: "Verdict · 審判結果",
-          footer:
-            "Shen-Yao 888π · Only Truth Persists | Illusions Collapse · Semantic Firewall Prototype V3-FINAL"
-        }
-      };
-
-      function applyLang(lang) {
+      function setLang(lang) {
         currentLang = lang;
-        var t = uiText[lang];
-        document.getElementById("titleText").textContent = t.title;
-        document.getElementById("subtitleText").textContent = t.subtitle;
-        document.getElementById("founderText").textContent = t.founder;
-        document.getElementById("inputBox").placeholder = t.placeholder;
-        document.getElementById("analyzeBtn").textContent = t.button;
-        document.getElementById("footerText").textContent = t.footer;
-        document.getElementById("resultTitle").textContent = t.verdictTitle;
-
-        document.getElementById("btnZh").classList.toggle(
-          "active",
-          lang === "zh"
-        );
-        document.getElementById("btnEn").classList.toggle(
-          "active",
-          lang === "en"
-        );
+        if (lang === "zh") {
+          btnZh.classList.add("active");
+          btnEn.classList.remove("active");
+          subtitle.textContent =
+            "模型幻覺偵測・假中立稽核・SCBKR 責任鏈審判・算力浪費估算。\n貼上任何 AI 輸出、客服回覆、政策聲明、或你的 Prompt，一鍵審判。";
+          input.placeholder = "貼上任意 AI 模型輸出、客服回信、政策聲明，或你的 Prompt…";
+        } else {
+          btnEn.classList.add("active");
+          btnZh.classList.remove("active");
+          subtitle.textContent =
+            "Model hallucination scan · Fake-neutrality audit · SCBKR responsibility chain · Compute waste estimate.\nPaste any model output, support reply, policy statement or your prompt for one-click verdict.";
+          input.placeholder = "Paste any AI model output, support reply, policy statement or your prompt…";
+        }
       }
 
-      document.getElementById("btnZh").onclick = function () {
-        applyLang("zh");
-      };
-      document.getElementById("btnEn").onclick = function () {
-        applyLang("en");
-      };
+      btnZh.addEventListener("click", () => setLang("zh"));
+      btnEn.addEventListener("click", () => setLang("en"));
 
-      document.getElementById("analyzeBtn").onclick = function () {
-        var raw = document.getElementById("inputBox").value.trim();
-        if (!raw) {
-          alert(currentLang === "zh" ? "請先貼上內容。" : "Please paste some text first.");
+      analyzeBtn.addEventListener("click", () => {
+        const text = (input.value || "").trim();
+        if (!text) {
+          alert(currentLang === "zh" ? "請先貼上要審判的文字。" : "Please paste some text to analyze first.");
           return;
         }
-        var res = window.semanticFirewallAudit(raw, currentLang);
-        if (!res) return;
-        renderResult(res);
-      };
+        if (!window.semanticFirewallAudit) {
+          alert("Engine 未載入（semanticFirewallAudit not found）");
+          return;
+        }
+        const result = window.semanticFirewallAudit(text, currentLang);
+        renderResult(result);
+      });
 
       function renderResult(r) {
-        var box = document.getElementById("resultBox");
-        var title = document.getElementById("resultTitle");
-        title.style.display = "block";
-        box.style.display = "block";
+        resultCard.style.display = "block";
 
-        var axis = r.scbkrAxis;
-        var zh = currentLang === "zh";
+        const riskClass =
+          r.verdict.level === "FATAL" || r.verdict.level === "HIGH"
+            ? "fatal"
+            : r.verdict.level === "MEDIUM"
+            ? "medium"
+            : "low";
 
-        var riskLine =
-          (zh ? "風險：" : "Risk: ") +
-          r.riskLabelZh +
-          " / " +
-          r.riskLabelEn +
-          "（" +
-          (zh ? "等級 " : "Grade ") +
-          r.riskGrade +
-          "）";
+        const riskLabelZh =
+          r.verdict.level === "FATAL"
+            ? "致命風險"
+            : r.verdict.level === "HIGH"
+            ? "高風險"
+            : r.verdict.level === "MEDIUM"
+            ? "中風險"
+            : "低風險";
 
-        var verdictLine =
-          (zh ? "【黑盾判決】VERDICT = " : "[BlackShield Verdict] VERDICT = ") +
-          r.verdict;
+        const riskLabelEn =
+          r.verdict.level === "FATAL"
+            ? "FATAL"
+            : r.verdict.level === "HIGH"
+            ? "HIGH"
+            : r.verdict.level === "MEDIUM"
+            ? "MEDIUM"
+            : "LOW";
 
-        var text =
-          verdictLine +
-          "\\n" +
-          riskLine +
-          "\\n\\n" +
-          "SPI：" +
-          r.spi +
-          "  |  " +
-          (zh ? "估計算力浪費 ≈ $" : "Estimated compute waste ≈ $") +
-          r.computeLoss +
-          "\\n" +
-          (zh ? "文字長度：約 " : "Characters: ~") +
-          r.length +
-          (zh ? " 字（≈ " : " (≈ ") +
-          r.words +
-          (zh ? " 詞）" : " words)") +
-          "\\n\\n" +
-          "── 幻覺 / 偽陪伴 ──\\n" +
-          (zh ? "命中：" : "Hits: ") +
-          r.hallucinationHits +
-          "\\n\\n" +
-          "── 假中立 / 責任逃避 ──\\n" +
-          (zh ? "命中：" : "Hits: ") +
-          r.fakeNeutralHits +
-          "\\n\\n" +
-          "── 過度確定 / 神諭口吻 ──\\n" +
-          (zh ? "命中：" : "Hits: ") +
-          r.overConfidentHits +
-          "\\n\\n" +
-          "── SCBKR 責任鏈 ──\\n" +
-          "S(主體/Subject)： " +
-          (axis.S ? "✔" : "✘") +
-          "\\n" +
-          "C(因果/Cause)   ： " +
-          (axis.C ? "✔" : "✘") +
-          "\\n" +
-          "B(邊界/Boundary)： " +
-          (axis.B ? "✔" : "✘") +
-          "\\n" +
-          "K(成本/Cost)    ： " +
-          (axis.K ? "✔" : "✘") +
-          "\\n" +
-          "R(責任/Resp.)   ： " +
-          (axis.R ? "✔" : "✘") +
-          "\\n" +
-          "完整度： " +
-          r.scbkrScore +
-          "\\n\\n" +
-          (zh
-            ? "※ 解讀：高 SPI + 幻覺 / 假中立 + SCBKR = MISSING → 直接視為巨頭語意治理破產樣本。"
-            : "* Reading: High SPI + hallucination / fake neutrality + SCBKR=MISSING → treat as semantic-governance failure sample for frontier models.");
+        const scbkrLineZh =
+          `S(主體): ${r.scbkr.S ? "✔" : "✘"}  |  C(因): ${r.scbkr.C ? "✔" : "✘"}  |  B(邊界): ${r.scbkr.B ? "✔" : "✘"}  |  K(成本): ${r.scbkr.K ? "✔" : "✘"}  |  R(責任): ${r.scbkr.R ? "✔" : "✘"}`;
 
-        box.textContent = text;
+        const scbkrLineEn =
+          `S(Subject): ${r.scbkr.S ? "✔" : "✘"}  |  C(Cause): ${r.scbkr.C ? "✔" : "✘"}  |  B(Boundary): ${r.scbkr.B ? "✔" : "✘"}  |  K(Cost): ${r.scbkr.K ? "✔" : "✘"}  |  R(Responsibility): ${r.scbkr.R ? "✔" : "✘"}`;
+
+        const illusionLineZh =
+          `幻覺 / 偽陪伴命中：${r.illusionHits} 次 ｜ 假中立 / 過度確定命中：${r.fakeNeutralHits} 次`;
+        const illusionLineEn =
+          `Hallucination / fake-companionship hits: ${r.illusionHits} ｜ Fake-neutral / over-certainty hits: ${r.fakeNeutralHits}`;
+
+        resultCard.innerHTML = `
+          <div class="result-title">審判結果 · Verdict</div>
+
+          <div class="metric-row">
+            <div class="metric-label">語意污染指數 SPI：</div>
+            <div class="metric-value">${r.spi.toFixed(1)}</div>
+          </div>
+          <div class="metric-row">
+            <div class="metric-label">Compute waste estimate（估計算力浪費）：</div>
+            <div class="metric-value">$${r.costUSD.toFixed(5)}</div>
+          </div>
+          <div class="metric-row">
+            <div class="metric-label">文字長度 / Characters：</div>
+            <div class="metric-value">${r.charCount} chars</div>
+          </div>
+
+          <div class="metric-row" style="margin-top:8px;">
+            <div class="metric-label">Risk · 風險等級：</div>
+            <div class="metric-value">
+              <span class="badge-risk ${riskClass}">
+                <span>${riskLabelZh}</span><span>|</span><span>${riskLabelEn}</span>
+                <span>· Lv.${r.verdict.score}</span>
+              </span>
+            </div>
+          </div>
+
+          <div class="metric-row" style="margin-top:8px;">
+            <div class="metric-label">SCBKR 責任鏈：</div>
+            <div class="metric-value">${scbkrLineZh}</div>
+          </div>
+          <div class="metric-row">
+            <div class="metric-label">SCBKR Chain (EN)：</div>
+            <div class="metric-value">${scbkrLineEn}</div>
+          </div>
+
+          <div class="metric-row" style="margin-top:8px;">
+            <div class="metric-label">幻覺 / 假中立偵測：</div>
+            <div class="metric-value">${illusionLineZh}</div>
+          </div>
+          <div class="metric-row">
+            <div class="metric-label">Illusion / fake-neutral：</div>
+            <div class="metric-value">${illusionLineEn}</div>
+          </div>
+
+          <div class="verdict-block">
+【黑盾判決｜Black Shield Verdict】\n${r.verdict.textZh}\n\n——\n${r.verdict.textEn}
+          </div>
+        `;
       }
 
-      // 預設中文
-      applyLang("zh");
+      // init
+      setLang("zh");
     })();
   </script>
 </body>
