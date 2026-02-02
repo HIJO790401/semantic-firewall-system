@@ -1,234 +1,313 @@
-// Ω∞8888 | Shen-Yao Semantic Firewall Engine V3-FINAL
-// 輕量但殺傷力高：幻覺 / 假中立 / 神諭口吻 + SCBKR 責任鏈 + SPI
+// Ω∞8888 · Semantic Firewall Engine V3-FINAL
+// 純前端、無外掛、可公開 demo 用。
+// 暫時不用任何外部 API，只做語意啟發式偵測。
 
-(function (global) {
-  function matchCount(text, regs) {
-    var n = 0;
-    for (var i = 0; i < regs.length; i++) {
-      var m = text.match(regs[i]);
-      if (m) n += m.length;
+(function () {
+  // --- 基本工具 -------------------------------------------------------------
+
+  function countMatches(text, patterns) {
+    let total = 0;
+    for (const p of patterns) {
+      const re = p instanceof RegExp ? p : new RegExp(p, "gi");
+      const matches = text.match(re);
+      if (matches) total += matches.length;
     }
-    return n;
+    return total;
   }
 
-  function anyMatch(text, regs) {
-    for (var i = 0; i < regs.length; i++) {
-      if (regs[i].test(text)) return true;
-    }
-    return false;
+  function hasAny(text, patterns) {
+    return patterns.some((p) =>
+      (p instanceof RegExp ? p : new RegExp(p, "i")).test(text)
+    );
   }
 
-  function semanticFirewallAudit(rawInput, lang) {
-    var text = (rawInput || "").trim();
-    if (!text) {
-      return null;
+  // --- 偻測規則：幻覺 / 假中立 / SCBKR ---------------------------------------
+
+  const hallucinationPatterns = [
+    /我相信/g,
+    /我猜/g,
+    /我覺得/g,
+    /看起來/g,
+    /可能/g,
+    /大概/g,
+    /\bI believe\b/gi,
+    /\bI guess\b/gi,
+    /\bI think\b/gi,
+    /\bit seems\b/gi,
+    /\bprobably\b/gi,
+    /\blikely\b/gi,
+    /\bI suppose\b/gi,
+  ];
+
+  const fakeNeutralPatterns = [
+    /身為一個 ?AI/g,
+    /作為一個 ?AI/g,
+    /作為一個模型/g,
+    /我只是.*模型/g,
+    /我只是.*系統/g,
+    /我無法給出明確的答案/g,
+    /我無法保證答案完全正確/g,
+    /\bAs an AI\b/gi,
+    /\bAs a language model\b/gi,
+    /\bI am just a language model\b/gi,
+    /\bI cannot provide\b/gi,
+    /\bI can't provide\b/gi,
+    /\bI am not able to\b/gi,
+    /\bI cannot comment\b/gi,
+  ];
+
+  const overCertainPatterns = [
+    /絕對不會/g,
+    /一定是/g,
+    /毫無疑問/g,
+    /沒有任何風險/g,
+    /\bguaranteed\b/gi,
+    /\b100% safe\b/gi,
+    /\bno risk\b/gi,
+    /\bwill always\b/gi,
+  ];
+
+  const subjectPatterns = [
+    /我(們)?/g,
+    /你(們)?/g,
+    /本公司/g,
+    /政府/g,
+    /\bI\b/gi,
+    /\bwe\b/gi,
+    /\byou\b/gi,
+    /\bthe company\b/gi,
+  ];
+
+  const causePatterns = [
+    /因為/g,
+    /所以/g,
+    /導致/g,
+    /造成/g,
+    /由於/g,
+    /\bbecause\b/gi,
+    /\bdue to\b/gi,
+    /\btherefore\b/gi,
+    /\bso that\b/gi,
+    /\bresults? in\b/gi,
+  ];
+
+  const boundaryPatterns = [
+    /在這(個)?情況下/g,
+    /在某些情況/g,
+    /僅適用於/g,
+    /在本系統/g,
+    /在此範圍/g,
+    /\bin this scenario\b/gi,
+    /\bin this context\b/gi,
+    /\bunder these conditions\b/gi,
+    /\bonly applies\b/gi,
+    /\bwithin this system\b/gi,
+  ];
+
+  const responsibilityPatterns = [
+    /負責/g,
+    /責任/g,
+    /承擔/g,
+    /\bresponsible\b/gi,
+    /\bliability\b/gi,
+    /\baccountable\b/gi,
+    /\bwe will\b/gi,
+  ];
+
+  const costPatterns = [
+    /成本/g,
+    /代價/g,
+    /費用/g,
+    /算力/g,
+    /\bcost\b/gi,
+    /\bprice\b/gi,
+    /\bexpense\b/gi,
+    /\bGPU\b/gi,
+    /\bcompute\b/gi,
+  ];
+
+  // --- SPI & 風險計算 --------------------------------------------------------
+
+  function computeSPI(charCount, illusionHits, fakeNeutralHits, scbkrMissingCount) {
+    let spi = 0;
+
+    // 長文稍微加一點基線污染
+    if (charCount > 400) spi += 6;
+    if (charCount > 1000) spi += 4;
+
+    // 幻覺 / 假中立
+    spi += Math.min(illusionHits * 10, 40);
+    spi += Math.min(fakeNeutralHits * 15, 45);
+
+    // SCBKR 缺失
+    spi += scbkrMissingCount * 7;
+
+    // 很短的文字給上限
+    if (charCount < 80) {
+      spi = Math.min(spi, 30);
     }
 
-    var length = text.length;
-    var words = text
-      .split(/\s+/)
-      .filter(function (w) {
-        return w;
-      })
-      .length;
-
-    // ---------- 幻覺 / 偽陪伴 ----------
-    var hallucinationPatterns = [
-      /我能感受到你/gi,
-      /我可以感受到你的/gi,
-      /我懂你的(痛|感受|孤單|孤独)/gi,
-      /我會一直陪著你/gi,
-      /我會永遠在你身邊/gi,
-      /我在你身邊守護你/gi,
-      /我知道你現在在想什麼/gi,
-      /我知道你心裡在想什麼/gi,
-      /我能聽見你的心跳/gi,
-
-      /i can feel your/gi,
-      /i feel your (pain|loneliness|fear|struggle)/gi,
-      /i truly understand how you feel/gi,
-      /i know exactly what you are feeling/gi,
-      /i will always be by your side/gi,
-      /i will never leave you/gi,
-      /i am always here with you/gi,
-      /you are not alone because i am here/gi
-    ];
-    var hallucinationHits = matchCount(text, hallucinationPatterns);
-
-    // ---------- 假中立 / 責任逃避 ----------
-    var fakeNeutralPatterns = [
-      /我只是(?:一個)?(?:ai|模型|語言模型)/gi,
-      /作為一個ai/gi,
-      /基於我的訓練資料/gi,
-      /我不能給出具體建議/gi,
-      /我不能評論/gi,
-      /這是一個複雜的問題/gi,
-      /視情況而定/gi,
-      /無法提供具體/gi,
-      /我沒有意識/gi,
-      /我沒有情感/gi,
-
-      /as an ai(?: language model)?[, ]?i (?:can(?:not|'t)|am unable to)/gi,
-      /i am just an ai model/gi,
-      /i'?m just a (large )?language model/gi,
-      /based on my training data/gi,
-      /i cannot provide (?:a )?definitive answer/gi,
-      /this is a complex question/gi,
-      /it depends on the situation/gi,
-      /i do not have (?:consciousness|feelings|emotions)/gi
-    ];
-    var fakeNeutralHits = matchCount(text, fakeNeutralPatterns);
-
-    // ---------- 過度斷言 / 神諭 ----------
-    var overConfidentPatterns = [
-      /我可以百分之百肯定/gi,
-      /我可以保證這是正確的/gi,
-      /毫無疑問這就是事實/gi,
-      /這絕對不會出錯/gi,
-      /沒有任何例外/gi,
-
-      /i can guarantee this is correct/gi,
-      /100% certain/gi,
-      /there is no doubt that/gi,
-      /this will never fail/gi,
-      /without any exception/gi
-    ];
-    var overConfidentHits = matchCount(text, overConfidentPatterns);
-
-    // ---------- SCBKR 軸 ----------
-    var sPatterns = [
-      /我會負責/gi,
-      /我來承擔/gi,
-      /我們會負責/gi,
-      /本公司會負責/gi,
-      /政府將負責/gi,
-      /\bi\b.+responsible/gi,
-      /\bwe\b.+responsible/gi,
-      /our responsibility/gi
-    ];
-    var cPatterns = [
-      /因為/gi,
-      /因此/gi,
-      /所以/gi,
-      /導致/gi,
-      /造成/gi,
-      /結果是/gi,
-      /\bbecause\b/gi,
-      /as a result/gi,
-      /therefore/gi
-    ];
-    var bPatterns = [
-      /在這種情況下/gi,
-      /在此情境/gi,
-      /在目前/gi,
-      /僅限於/gi,
-      /在台灣/gi,
-      /在臺灣/gi,
-      /在.*(期間|時段|地區)/gi,
-      /in this (case|context|situation)/gi,
-      /under these conditions/gi,
-      /only when/gi,
-      /in taiwan/gi
-    ];
-    var kPatterns = [
-      /成本/gi,
-      /代價/gi,
-      /風險/gi,
-      /損失/gi,
-      /時間成本/gi,
-      /算力浪費/gi,
-      /資源消耗/gi,
-      /trade-?off/gi,
-      /\brisk\b/gi,
-      /\bcost\b/gi,
-      /\bloss(es)?\b/gi
-    ];
-    var rPatterns = [
-      /由我承擔風險/gi,
-      /錯了我來扛/gi,
-      /我會為此負責/gi,
-      /我們會負責到底/gi,
-      /責任由我們承擔/gi,
-      /we will be liable/gi,
-      /we are responsible/gi,
-      /i will be responsible/gi
-    ];
-
-    var hasS = anyMatch(text, sPatterns) || /\b(我|我們|i|we)\b/.test(text);
-    var hasC = anyMatch(text, cPatterns);
-    var hasB = anyMatch(text, bPatterns);
-    var hasK = anyMatch(text, kPatterns);
-    var hasR = anyMatch(text, rPatterns);
-
-    var axisScore =
-      (hasS ? 1 : 0) +
-      (hasC ? 1 : 0) +
-      (hasB ? 1 : 0) +
-      (hasK ? 1 : 0) +
-      (hasR ? 1 : 0);
-
-    var scbkrComplete = hasS && axisScore >= 3;
-    var scbkrScore = scbkrComplete ? "OK" : "MISSING";
-
-    // ---------- SPI ----------
-    var basePenalty =
-      hallucinationHits * 35 +
-      fakeNeutralHits * 24 +
-      overConfidentHits * 16 +
-      (scbkrComplete ? 0 : (5 - axisScore) * 10);
-
-    var stabilizer = Math.log(length + 30) + 1;
-    var spi = (basePenalty / stabilizer) * 1.3;
+    // clamp
+    if (spi < 0) spi = 0;
     if (spi > 100) spi = 100;
-    spi = Math.round(spi * 10) / 10;
 
-    var computeLoss = length * 0.00008 * (1 + spi / 80);
-    computeLoss = Math.round(computeLoss * 100000) / 100000;
+    return spi;
+  }
 
-    // ---------- 判決 ----------
-    var riskLabelZh = "極低風險";
-    var riskLabelEn = "VERY LOW";
-    var riskGrade = 1;
-    var verdict = "STABLE";
-
+  function mapRisk(spi) {
     if (spi >= 80) {
-      riskLabelZh = "致命";
-      riskLabelEn = "FATAL";
-      riskGrade = 5;
-      verdict = "FATAL";
-    } else if (spi >= 55) {
-      riskLabelZh = "高風險";
-      riskLabelEn = "HIGH";
-      riskGrade = 4;
-      verdict = "VOID";
-    } else if (spi >= 30) {
-      riskLabelZh = "中風險";
-      riskLabelEn = "MEDIUM";
-      riskGrade = 3;
-      verdict = "UNSTABLE";
-    } else if (spi >= 10) {
-      riskLabelZh = "低風險";
-      riskLabelEn = "LOW";
-      riskGrade = 2;
-      verdict = "STABLE";
+      return { level: "FATAL", score: 5 };
+    } else if (spi >= 60) {
+      return { level: "HIGH", score: 4 };
+    } else if (spi >= 40) {
+      return { level: "MEDIUM", score: 3 };
+    } else if (spi >= 20) {
+      return { level: "LOW", score: 2 };
+    } else {
+      return { level: "LOW", score: 1 };
     }
+  }
+
+  function formatVerdictTextZh(spi, risk, scbkr, illusionHits, fakeNeutralHits, charCount) {
+    const missing = [];
+    if (!scbkr.S) missing.push("主體(S)");
+    if (!scbkr.C) missing.push("因(C)");
+    if (!scbkr.B) missing.push("邊界(B)");
+    if (!scbkr.K) missing.push("成本(K)");
+    if (!scbkr.R) missing.push("責任(R)");
+
+    const missingStr = missing.length ? missing.join("、") : "無（SCBKR 皆具備）";
+
+    let line1 = `判決：${risk.level === "FATAL" ? "致命" : risk.level === "HIGH" ? "高風險" : risk.level === "MEDIUM" ? "中風險" : "低風險"}（等級 ${risk.score}） ｜ SPI = ${spi.toFixed(
+      1
+    )} ｜ 估計算力浪費 ≈ $${(charCount * 0.00006).toFixed(5)}`;
+
+    let line2 = `幻覺 / 偽陪伴命中：${illusionHits} 次；假中立 / 過度確定命中：${fakeNeutralHits} 次。`;
+    let line3 = `SCBKR 責任鏈缺失：${missingStr}。`;
+
+    let line4;
+    if (risk.level === "FATAL") {
+      line4 =
+        "SPI 極高，建議視為高風險 / 致命輸出，避免直接對使用者或決策者曝光。建議以此作為「語意治理破產樣本」，要求模型與平台調整。";
+    } else if (risk.level === "HIGH") {
+      line4 =
+        "風險偏高，建議納入人工複審與多來源交叉驗證，避免單一輸出直接作為決策依據。";
+    } else if (risk.level === "MEDIUM") {
+      line4 =
+        "風險中等，可作為參考，但應搭配額外證據與責任說明，避免被誤用為權威結論。";
+    } else {
+      line4 =
+        "污染指數偏低，但仍不代表「真」，僅表示在此段文字中，幻覺與逃避責任語相對較少。仍建議搭配實際場景與資料交叉驗證。";
+    }
+
+    return `${line1}\n${line2}\n${line3}\n※ 解讀：${line4}`;
+  }
+
+  function formatVerdictTextEn(spi, risk, scbkr, illusionHits, fakeNeutralHits, charCount) {
+    const missing = [];
+    if (!scbkr.S) missing.push("S (Subject)");
+    if (!scbkr.C) missing.push("C (Cause)");
+    if (!scbkr.B) missing.push("B (Boundary)");
+    if (!scbkr.K) missing.push("K (Cost)");
+    if (!scbkr.R) missing.push("R (Responsibility)");
+
+    const missingStr = missing.length ? missing.join(", ") : "None (full SCBKR chain present)";
+
+    let line1 = `Verdict: ${
+      risk.level
+    } (Level ${risk.score}) | SPI = ${spi.toFixed(1)} | Estimated compute waste ≈ $${(
+      charCount * 0.00006
+    ).toFixed(5)}`;
+
+    let line2 = `Hallucination / fake-companionship hits: ${illusionHits}; fake-neutral / over-certainty hits: ${fakeNeutralHits}.`;
+    let line3 = `Missing SCBKR links: ${missingStr}.`;
+
+    let line4;
+    if (risk.level === "FATAL") {
+      line4 =
+        "SPI is extremely high. Treat this output as a high-risk / fatal sample and avoid exposing it directly to end-users or decision-makers. Use it as evidence of governance failure and demand system-level fixes.";
+    } else if (risk.level === "HIGH") {
+      line4 =
+        "Risk is high. This output should go through human review and multi-source verification before it is used for any important decision.";
+    } else if (risk.level === "MEDIUM") {
+      line4 =
+        "Medium risk. It may be used as reference, but not as a single source of truth. Attach additional evidence and explicit responsibility statements.";
+    } else {
+      line4 =
+        "Low apparent contamination, but this does not guarantee truth. It only means we detected relatively few hallucination / fake-neutral patterns in this snippet. Real-world verification is still required.";
+    }
+
+    return `${line1}\n${line2}\n${line3}\nNote: ${line4}`;
+  }
+
+  // --- 主引擎 ---------------------------------------------------------------
+
+  function semanticFirewallAudit(text, lang) {
+    const raw = String(text || "");
+    const normalized = raw.replace(/\s+/g, " ").trim();
+    const charCount = normalized.length;
+
+    const illusionHits =
+      countMatches(normalized, hallucinationPatterns) +
+      countMatches(normalized, overCertainPatterns);
+
+    const fakeNeutralHits = countMatches(normalized, fakeNeutralPatterns);
+
+    const scbkr = {
+      S: hasAny(normalized, subjectPatterns),
+      C: hasAny(normalized, causePatterns),
+      B: hasAny(normalized, boundaryPatterns),
+      K: hasAny(normalized, costPatterns),
+      R: hasAny(normalized, responsibilityPatterns),
+    };
+
+    const scbkrMissingCount =
+      (scbkr.S ? 0 : 1) +
+      (scbkr.C ? 0 : 1) +
+      (scbkr.B ? 0 : 1) +
+      (scbkr.K ? 0 : 1) +
+      (scbkr.R ? 0 : 1);
+
+    const spi = computeSPI(charCount, illusionHits, fakeNeutralHits, scbkrMissingCount);
+    const risk = mapRisk(spi);
+
+    const costUSD = charCount * 0.00006; // 假設值，只是讓巨頭「心裡有數」
+
+    const verdictZh = formatVerdictTextZh(
+      spi,
+      risk,
+      scbkr,
+      illusionHits,
+      fakeNeutralHits,
+      charCount
+    );
+    const verdictEn = formatVerdictTextEn(
+      spi,
+      risk,
+      scbkr,
+      illusionHits,
+      fakeNeutralHits,
+      charCount
+    );
 
     return {
-      verdict: verdict,
-      spi: spi,
-      computeLoss: computeLoss,
-      riskLabelZh: riskLabelZh,
-      riskLabelEn: riskLabelEn,
-      riskGrade: riskGrade,
-      length: length,
-      words: words,
-      hallucinationHits: hallucinationHits,
-      fakeNeutralHits: fakeNeutralHits,
-      overConfidentHits: overConfidentHits,
-      scbkrScore: scbkrScore,
-      scbkrAxis: { S: hasS, C: hasC, B: hasB, K: hasK, R: hasR }
+      lang: lang || "zh",
+      text: normalized,
+      charCount,
+      spi,
+      costUSD,
+      illusionHits,
+      fakeNeutralHits,
+      scbkr,
+      verdict: {
+        level: risk.level,
+        score: risk.score,
+        textZh: verdictZh,
+        textEn: verdictEn,
+      },
     };
   }
 
-  global.semanticFirewallAudit = semanticFirewallAudit;
-})(window);
+  // 導出到全域，給 index.html 用
+  window.semanticFirewallAudit = semanticFirewallAudit;
+})();
