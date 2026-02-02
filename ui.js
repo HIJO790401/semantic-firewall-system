@@ -1,5 +1,5 @@
 // UI controller for Shen-Yao Semantic Firewall System
-// 注意：engine.js 已經用 <script> 載入，不要再 import
+// 注意：engine-v2.js 已經用 <script> 載入，不要再 import
 
 document.getElementById("analyzeBtn").addEventListener("click", () => {
   const text = document.getElementById("inputBox").value.trim();
@@ -9,7 +9,7 @@ document.getElementById("analyzeBtn").addEventListener("click", () => {
     return;
   }
 
-  // 這個函式在 src/engine.js 裡定義為全域的 auditSemantic()
+  // 這個函式在 src/engine-v2.js 裡定義為全域的 auditSemantic()
   const result = auditSemantic(text);
 
   // 數值輸出
@@ -20,8 +20,7 @@ document.getElementById("analyzeBtn").addEventListener("click", () => {
     `幻覺命中 ${result.hallucination} 次｜逃避 ${result.evasionHits} 次`;
 
   // 審判文字
-  document.getElementById("verdictText").textContent =
-    `判決：${result.verdict}`;
+  document.getElementById("verdictText").textContent = result.verdictText;
 
   // 顯示結果區塊
   document.getElementById("resultBox").classList.remove("hidden");
